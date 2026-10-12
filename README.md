@@ -51,7 +51,7 @@ See [Setup](docs/content/docs/index.mdx), [Configuration](docs/content/docs/conf
 packages/fumadocs-git-changelog/  Package, CSS, and tests
 docs/                           Fumadocs documentation and interactive demo
 .changeset/                     Package version notes
-.github/workflows/ci.yml         Validation only
+.github/workflows/ci.yml         Validation and documentation deployment
 ```
 
 The workspace follows the package-and-docs layout used by [Typesense's Fumadocs adapter](https://github.com/typesense/typesense-fumadocs-adapter), using pnpm. The docs app consumes the local package through `workspace:*`; all Fumadocs dependencies come from npm.
@@ -68,7 +68,15 @@ The demo uses a saved snapshot of this project's public Git history with shenxia
 
 ## Releases
 
-Use `pnpm changeset` for package changes. Before a release, run `pnpm check` and inspect the package with `pnpm --filter fumadocs-git-changelog exec npm pack --dry-run`. Versioning and publishing are manual; CI does not publish packages or deploy the site.
+Use `pnpm changeset` for package changes. Before a release, run `pnpm check` and inspect the package with `pnpm --filter fumadocs-git-changelog exec npm pack --dry-run`. Package versioning and publishing are manual.
+
+## Documentation deployment
+
+After validation passes, pushes to `main` deploy the docs and demo to Vercel. Pull requests only run validation. GitHub Actions builds from a complete Git checkout and uploads the prebuilt output; Vercel's automatic Git deployments are disabled to avoid duplicate deployments.
+
+The Vercel project uses the `docs` root directory with files outside the root directory included, the Next.js preset, and Node.js 24. Build settings are in `docs/vercel.json`.
+
+GitHub Actions requires the repository variables `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID`, and the repository secret `VERCEL_TOKEN`. The docs build uses the workflow's read-only `GITHUB_TOKEN` for optional author lookup.
 
 ## License and credits
 

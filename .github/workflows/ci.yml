@@ -19,3 +19,38 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm --filter fumadocs-git-changelog exec npm pack --dry-run
+  deploy:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: production
+      cancel-in-progress: false
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Pull Vercel configuration
+        run: pnpm dlx vercel@63.1.2 pull --yes --environment=production --token="$VERCEL_TOKEN"
+      - name: Build documentation for Vercel
+        run: pnpm dlx vercel@63.1.2 build --prod --token="$VERCEL_TOKEN"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Deploy documentation
+        id: deploy
+        run: |
+          url=$(pnpm dlx vercel@63.1.2 deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
