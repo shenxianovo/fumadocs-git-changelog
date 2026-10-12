@@ -1,4 +1,4 @@
-import { DocsLayout } from 'fumadocs-ui/layouts/docs';
+import { DocsLayout } from 'fumadocs-ui/layouts/spacious';
 import { source } from '@/lib/source';
 import { baseOptions } from '@/lib/layout.shared';
 

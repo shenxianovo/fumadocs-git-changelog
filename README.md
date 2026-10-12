@@ -2,6 +2,8 @@
 
 Per-page Git history and contributors for Fumadocs. A community-maintained integration inspired by [Nolebase Git Changelog](https://nolebase-integrations.ayaka.io/pages/en/integrations/git-changelog/).
 
+[Documentation](https://fumadocs-git-changelog.vercel.app/docs) · [Live demo](https://fumadocs-git-changelog.vercel.app/docs/demo)
+
 - Automatically append contributors and history with MDX or Sätteri.
 - Enable each section independently, globally or per page.
 - Follow file renames, credit co-authors, and display release tags.
