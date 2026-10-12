@@ -1,0 +1,26 @@
+[
+  {
+    "sha": "63a1a922fc7c974211533ed1248d4c615c33bc06",
+    "shortSha": "63a1a92",
+    "date": "2026-10-12T14:26:50+08:00",
+    "authoredAt": "2026-10-12T14:26:50+08:00",
+    "committedAt": "2026-10-12T14:33:43+08:00",
+    "message": "feat: extract Git Changelog as a community package",
+    "description": "",
+    "authors": [
+      {
+        "name": "shenxianovo",
+        "avatarUrl": "https://github.com/shenxianovo.png",
+        "url": "https://github.com/shenxianovo"
+      }
+    ],
+    "url": "https://github.com/shenxianovo/fumadocs-git-changelog/commit/63a1a922fc7c974211533ed1248d4c615c33bc06",
+    "repoURL": "https://github.com/shenxianovo/fumadocs-git-changelog",
+    "tags": [
+      {
+        "name": "v0.1.0",
+        "url": "https://github.com/shenxianovo/fumadocs-git-changelog/releases/tag/v0.1.0"
+      }
+    ]
+  }
+]

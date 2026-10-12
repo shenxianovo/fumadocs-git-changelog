@@ -1,0 +1,78 @@
+---
+title: Git Changelog
+description: Add Git history and contributors to your docs.
+---
+
+## Setup
+
+This is a community-maintained integration. Requires Node.js 24.14 or later and Fumadocs 16.17 or later. Try the [interactive demo](/docs/demo).
+
+Install the package:
+
+```npm
+npm i fumadocs-git-changelog
+```
+
+### Add Styles
+
+Add after your Fumadocs styles:
+
+```css title="global.css"
+@import 'fumadocs-git-changelog/css/preset.css';
+```
+
+### Configure Plugin
+
+Add the plugin to your existing Fumadocs MDX configuration:
+
+<Tabs items={["MDX", "Sätteri"]}>
+<Tab>
+
+```ts title="source.config.ts"
+import { defineConfig } from 'fumadocs-mdx/config';
+import { remarkGitChangelog } from 'fumadocs-git-changelog/remark';
+
+export default defineConfig({
+  mdxOptions: {
+    remarkPlugins: [[remarkGitChangelog, { repoURL: 'https://github.com/owner/repository' }]],
+  },
+});
+```
+
+</Tab>
+<Tab>
+
+```ts title="source.config.ts"
+import { defineConfig } from 'fumadocs-mdx/config';
+import { gitChangelog } from 'fumadocs-git-changelog/satteri';
+
+export default defineConfig({
+  compiler: 'satteri',
+  satteriOptions: {
+    mdastPlugins: [gitChangelog({ repoURL: 'https://github.com/owner/repository' })],
+  },
+});
+```
+
+</Tab>
+</Tabs>
+
+Contributors and page history appear after each document. No page-template changes are needed.
+If a collection defines its own compiler options, register the plugin there instead. See [Configuration](/docs/configuration).
+
+For sites with multiple collections, register the plugin only in the docs collection. This keeps blog posts and other MDX content separate. React homepages do not run the MDX plugin.
+
+### Build
+
+Git must be available with a full checkout. On GitHub Actions:
+
+```yaml
+- uses: actions/checkout@v6
+  with:
+    fetch-depth: 0
+```
+
+For an existing shallow clone, run `git fetch --unshallow`.
+History is included at build time; your deployed site does not need Git. Rebuild after commits, or restart the development server for Git-only changes. New files show history after their first commit.
+
+Inspired by [Nolebase Git Changelog](https://nolebase-integrations.ayaka.io/pages/en/integrations/git-changelog/).
