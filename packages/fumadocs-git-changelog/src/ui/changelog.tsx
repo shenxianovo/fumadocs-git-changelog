@@ -1,0 +1,245 @@
+'use client';
+
+import { useState } from 'react';
+import { useTranslations } from '@fuma-translate/react';
+import { Heading } from 'fumadocs-ui/components/heading';
+import { buttonVariants } from 'fumadocs-ui/components/ui/button';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from 'fumadocs-ui/components/ui/collapsible';
+import {
+  ArrowDownWideNarrow,
+  ArrowUpWideNarrow,
+  ChevronDown,
+  GitCommitVertical,
+  History,
+  Ellipsis,
+  Tag,
+} from 'lucide-react';
+import type { HistoryAuthor, HistoryCommit } from '../index';
+import { GitContributors } from './contributors';
+import { GitChangelogLabel } from './label';
+import { CommitMessage } from './message';
+import { Author, HistoryDate, HistoryLink, isFreshChange, useNow } from './shared';
+
+export interface GitChangelogProps {
+  commits: readonly HistoryCommit[];
+  authors?: readonly HistoryAuthor[];
+  locale?: string;
+  timeZone?: string;
+  defaultExpanded?: boolean;
+  showContributors?: boolean;
+  hideChangelogHeader?: boolean;
+  hideChangelogNoChangesText?: boolean;
+  hideContributorsHeader?: boolean;
+  hideSortBy?: boolean;
+  displayAuthorsInsideCommitLine?: boolean;
+  commitsRelativeTime?: boolean;
+  numCommitHashLetters?: number;
+  /** Needed for issue links in manually supplied commits without repoURL. */
+  repoURL?: string;
+  id?: string;
+  contributorsId?: string;
+  className?: string;
+}
+
+export function GitChangelog({
+  commits,
+  authors = [],
+  locale = 'en',
+  timeZone = 'UTC',
+  defaultExpanded = false,
+  showContributors = true,
+  hideChangelogHeader = false,
+  hideChangelogNoChangesText = false,
+  hideContributorsHeader = false,
+  hideSortBy = false,
+  displayAuthorsInsideCommitLine = false,
+  commitsRelativeTime = false,
+  numCommitHashLetters = 7,
+  repoURL,
+  id,
+  contributorsId,
+  className = '',
+}: GitChangelogProps) {
+  const headingId = id ?? 'git-history';
+  const t = useTranslations({ note: 'git changelog' });
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const [oldestFirst, setOldestFirst] = useState(false);
+  const now = useNow();
+  const newest = [...commits].sort(
+    (a, b) => Date.parse(b.date) - Date.parse(a.date) || a.sha.localeCompare(b.sha),
+  );
+  const ordered = oldestFirst ? [...newest].reverse() : newest;
+  const latest = newest[0];
+  const hashLength =
+    Number.isSafeInteger(numCommitHashLetters) && numCommitHashLetters > 0
+      ? numCommitHashLetters
+      : 7;
+  const date = (value: string, relative = commitsRelativeTime) => (
+    <HistoryDate value={value} locale={locale} timeZone={timeZone} relative={relative} now={now} />
+  );
+  const sortLabel = oldestFirst ? t('Newest first') : t('Oldest first');
+  return (
+    <div className={`fgc ${className}`}>
+      {showContributors && (
+        <GitContributors
+          id={contributorsId ?? (id ? `${id}-contributors` : 'git-contributors')}
+          commits={newest}
+          authors={authors}
+          locale={locale}
+          hideContributorsHeader={hideContributorsHeader}
+        />
+      )}
+      <section
+        className="fgc-section"
+        aria-labelledby={hideChangelogHeader ? undefined : headingId}
+        aria-label={hideChangelogHeader ? t('Page history') : undefined}
+        data-git-changelog
+        data-history-count={commits.length}
+      >
+        {!hideChangelogHeader && (
+          <Heading as="h2" id={headingId} className="fgc-heading">
+            <GitChangelogLabel section="history" />
+          </Heading>
+        )}
+        {!latest ? (
+          !hideChangelogNoChangesText && <p className="fgc-empty">{t('No history yet.')}</p>
+        ) : (
+          <Collapsible
+            open={expanded}
+            onOpenChange={setExpanded}
+            className="fgc-panel not-prose"
+            data-fresh={isFreshChange(latest.date, now) || undefined}
+          >
+            <div className="fgc-header">
+              <CollapsibleTrigger
+                aria-label={expanded ? t('Collapse history') : t('View full history')}
+                className={`${buttonVariants({ variant: 'ghost' })} fgc-toggle`}
+              >
+                <span className="fgc-summary">
+                  <History className="fgc-history-icon" aria-hidden="true" />
+                  <span>
+                    {t('Last edited')} {date(latest.date, true)}
+                  </span>
+                </span>
+                <span className="fgc-expand">
+                  <span className="fgc-expand-label">{t('View full history')}</span>
+                  <ChevronDown
+                    className="fgc-chevron"
+                    data-expanded={expanded}
+                    aria-hidden="true"
+                  />
+                </span>
+              </CollapsibleTrigger>
+              {!hideSortBy && (
+                <button
+                  type="button"
+                  disabled={!expanded}
+                  aria-label={sortLabel}
+                  title={sortLabel}
+                  className={`${buttonVariants({ variant: 'ghost', size: 'icon-sm' })} fgc-sort`}
+                  onClick={() => setOldestFirst(!oldestFirst)}
+                >
+                  {oldestFirst ? (
+                    <ArrowUpWideNarrow aria-hidden="true" />
+                  ) : (
+                    <ArrowDownWideNarrow aria-hidden="true" />
+                  )}
+                </button>
+              )}
+            </div>
+            <CollapsibleContent>
+              <ol className="fgc-list">
+                {ordered.map((commit) => (
+                  <li key={commit.sha} data-commit={commit.sha} className="fgc-entry">
+                    <GitCommitVertical className="fgc-commit-icon" aria-hidden="true" />
+                    <div className="fgc-entry-body">
+                      <CommitRow
+                        commit={commit}
+                        hashLength={hashLength}
+                        repoURL={repoURL}
+                        locale={locale}
+                        displayAuthors={displayAuthorsInsideCommitLine}
+                        date={date(commit.date)}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function CommitRow({
+  commit,
+  hashLength,
+  repoURL,
+  locale,
+  displayAuthors,
+  date,
+}: {
+  commit: HistoryCommit;
+  hashLength: number;
+  repoURL?: string;
+  locale: string;
+  displayAuthors: boolean;
+  date: React.ReactNode;
+}) {
+  const t = useTranslations({ note: 'git changelog' });
+  const content = (
+    <div className="fgc-row">
+      <HistoryLink href={commit.url} className="fgc-sha">
+        <code>{commit.sha.slice(0, hashLength)}</code>
+      </HistoryLink>
+      <span className="fgc-dash" aria-hidden="true">
+        {' '}
+        -{' '}
+      </span>
+      <span className="fgc-row-text">
+        <CommitMessage message={commit.message} repoURL={commit.repoURL ?? repoURL} inline />
+        {commit.tags?.map((tag) => (
+          <HistoryLink key={tag.name} href={tag.url} className="fgc-tag">
+            <Tag aria-hidden="true" />
+            {tag.name}
+          </HistoryLink>
+        ))}
+        {displayAuthors && (
+          <span className="fgc-inline-authors">
+            {commit.authors.map((author) => (
+              <Author key={author.url ?? author.name} author={author} locale={locale} compact />
+            ))}
+          </span>
+        )}{' '}
+        <span className="fgc-date">· {date}</span>
+        {commit.description && (
+          <CollapsibleTrigger
+            className={`${buttonVariants({ variant: 'ghost', size: 'icon-xs' })} fgc-details-trigger`}
+            aria-label={t('Commit details')}
+            title={t('Commit details')}
+          >
+            <Ellipsis aria-hidden="true" />
+          </CollapsibleTrigger>
+        )}
+      </span>
+    </div>
+  );
+  return commit.description ? (
+    <Collapsible>
+      {content}
+      <CollapsibleContent>
+        <div className="fgc-details">
+          <CommitMessage message={commit.description} repoURL={commit.repoURL ?? repoURL} />
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  ) : (
+    content
+  );
+}

@@ -1,0 +1,11 @@
+{
+  "singleQuote": true,
+  "ignorePatterns": [
+    "pnpm-lock.yaml",
+    "**/next-env.d.ts",
+    "**/dist/**",
+    "**/.next/**",
+    "**/.source/**",
+    "**/.translations/**",
+  ],
+}

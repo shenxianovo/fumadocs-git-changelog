@@ -1,0 +1,35 @@
+import { loader } from 'fumadocs-core/source';
+import { pageSchema } from 'fumadocs-core/source/schema';
+import { defineDocs } from 'fumadocs-mdx/macro';
+import { applyMdxPreset } from 'fumadocs-mdx/config';
+import { remarkGitChangelog } from 'fumadocs-git-changelog/remark';
+import { gitChangelogSchema } from 'fumadocs-git-changelog/schema';
+
+const docs = defineDocs({
+  dir: 'content/docs',
+  docs: {
+    schema: pageSchema.extend(gitChangelogSchema.shape),
+    mdxOptions: applyMdxPreset({
+      remarkPlugins: [
+        [
+          remarkGitChangelog,
+          {
+            repoURL: 'https://github.com/shenxianovo/fumadocs-git-changelog',
+            maxGitLogCount: 12,
+            ...(process.env.GITHUB_TOKEN
+              ? {
+                  github: {
+                    token: process.env.GITHUB_TOKEN,
+                    cacheDir: 'docs/.next/cache/git-changelog',
+                  },
+                }
+              : {}),
+            display: { commitsRelativeTime: true },
+          },
+        ],
+      ],
+    }),
+  },
+});
+
+export const source = loader({ baseUrl: '/docs', source: docs.toFumadocsSource() });

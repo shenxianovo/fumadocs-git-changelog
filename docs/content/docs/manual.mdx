@@ -1,0 +1,55 @@
+---
+title: Advanced API
+description: Read Git history for custom layouts or content pipelines.
+---
+
+The compiler plugin handles normal setup. Use these APIs only for a custom layout or content pipeline.
+
+## Read history
+
+Read Git in a Node server module or build script, then pass the result to the UI:
+
+```tsx title="components/page-history.tsx"
+import 'server-only';
+import { readPageHistory } from 'fumadocs-git-changelog/git';
+import { GitChangelog } from 'fumadocs-git-changelog/ui';
+
+export async function PageHistory({ path }: { path: string }) {
+  const commits = await readPageHistory(path, {
+    repoURL: 'https://github.com/owner/repository',
+  });
+
+  return <GitChangelog commits={commits} />;
+}
+```
+
+Place it where history should appear. `path` is relative to the Git root, e.g. `content/docs/guide.mdx`, not a URL or slug. Reader options are listed in [Configuration](/docs/configuration#git-options); standalone readers default `cwd` to the current working directory.
+
+Without Git at runtime, save the records as JSON during your build and import that snapshot. Git requires a complete checkout; failed commands and shallow checkouts report errors.
+
+## Reuse a reader
+
+Each `readPageHistory()` call reads fresh repository metadata. A build processing multiple files can share a reader:
+
+```ts
+import { createHistoryReader } from 'fumadocs-git-changelog/git';
+
+const history = createHistoryReader({ repoURL: 'https://github.com/owner/repository' });
+const commits = await history.read('content/docs/guide.mdx');
+```
+
+Create a new reader for each build. The compiler plugins manage this themselves.
+
+## Components
+
+`GitChangelog` accepts `commits`, optional additional `authors`, and the [display props](/docs/configuration#display). Pass `repoURL` when manually supplied records lack it.
+
+For contributors only:
+
+```tsx
+import { GitContributors } from 'fumadocs-git-changelog/ui';
+
+<GitContributors commits={commits} authors={authors} />;
+```
+
+`resolveAuthors(names, registry)` from the Git entry point resolves additional authors. `shouldShowChangelog(frontmatter)` and `shouldShowContributors(frontmatter)` from `fumadocs-git-changelog` apply the same per-page controls as the plugins.

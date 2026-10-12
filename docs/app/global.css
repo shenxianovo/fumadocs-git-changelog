@@ -1,0 +1,9 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+@import 'fumadocs-git-changelog/css/preset.css';
+@source '../../packages/fumadocs-git-changelog/dist';
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
