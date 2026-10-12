@@ -1,0 +1,157 @@
+import { realpathSync } from 'node:fs';
+import path from 'node:path';
+import { valueToEstree } from 'estree-util-value-to-estree';
+import type { Heading, Root } from 'mdast';
+import { slug } from 'github-slugger';
+import { toString } from 'mdast-util-to-string';
+import type { MdxjsEsm, MdxJsxFlowElement } from 'mdast-util-mdx';
+import { createHistoryReader, resolveAuthors, type HistoryOptions } from '../git';
+import { shouldShowChangelog, shouldShowContributors, type ChangelogFrontmatter } from '../index';
+import type { GitChangelogProps } from '../ui/changelog';
+
+export interface GitChangelogOptions extends HistoryOptions {
+  /** Select documents by their absolute source path. Defaults to every document. */
+  filter?: (filePath: string) => boolean;
+  /** Serializable UI defaults, shared by every injected footer. */
+  display?: Omit<GitChangelogProps, 'commits' | 'authors' | 'repoURL'>;
+}
+
+/** Build-time only: no Git options, registry, or Node imports enter the generated module. */
+export function createFooter(options: GitChangelogOptions) {
+  let reader: ReturnType<typeof createHistoryReader> | undefined;
+  return async function footer(
+    filePath: string,
+    frontmatter: ChangelogFrontmatter,
+    tree: Root,
+  ): Promise<[MdxjsEsm, ...(Heading | MdxJsxFlowElement)[]] | undefined> {
+    if (!filePath) throw new Error('Git changelog requires a source file path.');
+    const absolutePath = path.resolve(filePath);
+    if (options.filter && !options.filter(absolutePath)) return;
+    const showChangelog = shouldShowChangelog(frontmatter);
+    const showContributors =
+      shouldShowContributors(frontmatter) && options.display?.showContributors !== false;
+    if (!showChangelog && !showContributors) return;
+
+    reader ??= createHistoryReader({ ...options, cwd: options.cwd ?? path.dirname(absolutePath) });
+    const root = await reader.getRoot();
+    // Git resolves symlinked checkout directories (e.g. macOS /var -> /private/var).
+    const canonicalPath = path.join(
+      realpathSync(path.dirname(absolutePath)),
+      path.basename(absolutePath),
+    );
+    const commits = await reader.read(path.relative(root, canonicalPath));
+    const authors = resolveAuthors(frontmatter.authors ?? [], options.registry);
+    // New, untracked documents have no published history to show yet.
+    if (commits.length === 0 && authors.length === 0) return;
+
+    const source = JSON.stringify(tree);
+    const headingText = slug(toString(tree));
+    const component = showChangelog ? 'GitChangelog' : 'GitContributors';
+    let localName = '_FumadocsGitChangelog';
+    while (source.includes(localName)) localName += '_';
+    const labelName = `${localName}Label`;
+    const uniqueId = (base: string) => {
+      let id = base;
+      while (source.includes(id) || headingText.includes(id)) id += '-1';
+      return id;
+    };
+    const historyId = options.display?.id ?? uniqueId('git-history');
+    const contributorsId =
+      (showChangelog ? options.display?.contributorsId : options.display?.id) ??
+      uniqueId('git-contributors');
+    const headings: Heading[] = [];
+    function addHeading(section: 'contributors' | 'history', id: string) {
+      headings.push({
+        type: 'heading',
+        depth: 2,
+        data: { hProperties: { id } },
+        children: [
+          {
+            type: 'mdxJsxTextElement',
+            name: labelName,
+            attributes: [{ type: 'mdxJsxAttribute', name: 'section', value: section }],
+            children: [],
+          },
+          // Native Fumadocs TOC-only headings are removed from the body by rehype-toc.
+          { type: 'text', value: '[toc]' },
+        ],
+      });
+    }
+    if (showContributors && !options.display?.hideContributorsHeader)
+      addHeading('contributors', contributorsId);
+    if (showChangelog && !options.display?.hideChangelogHeader) addHeading('history', historyId);
+    const props = showChangelog
+      ? {
+          ...options.display,
+          commits,
+          authors,
+          repoURL: options.repoURL,
+          showContributors,
+          id: historyId,
+          contributorsId,
+        }
+      : {
+          commits,
+          authors,
+          locale: options.display?.locale,
+          hideContributorsHeader: options.display?.hideContributorsHeader,
+          id: contributorsId,
+          className: options.display?.className,
+        };
+    const moduleName = 'fumadocs-git-changelog/ui';
+    return [
+      {
+        type: 'mdxjsEsm',
+        value: `import { ${component} as ${localName}, GitChangelogLabel as ${labelName} } from '${moduleName}';`,
+        data: {
+          estree: {
+            type: 'Program',
+            sourceType: 'module',
+            body: [
+              {
+                type: 'ImportDeclaration',
+                attributes: [],
+                source: { type: 'Literal', value: moduleName },
+                specifiers: [
+                  {
+                    type: 'ImportSpecifier',
+                    imported: { type: 'Identifier', name: component },
+                    local: { type: 'Identifier', name: localName },
+                  },
+                  {
+                    type: 'ImportSpecifier',
+                    imported: { type: 'Identifier', name: 'GitChangelogLabel' },
+                    local: { type: 'Identifier', name: labelName },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+      ...headings,
+      {
+        type: 'mdxJsxFlowElement',
+        name: localName,
+        attributes: Object.entries(props)
+          .filter(([, value]) => value !== undefined)
+          .map(([name, value]) => ({
+            type: 'mdxJsxAttribute',
+            name,
+            value: {
+              type: 'mdxJsxAttributeValueExpression',
+              value: JSON.stringify(value),
+              data: {
+                estree: {
+                  type: 'Program',
+                  sourceType: 'module',
+                  body: [{ type: 'ExpressionStatement', expression: valueToEstree(value) }],
+                },
+              },
+            },
+          })),
+        children: [],
+      },
+    ];
+  };
+}
