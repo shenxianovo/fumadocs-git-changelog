@@ -13,7 +13,7 @@ import {
   ArrowDownWideNarrow,
   ArrowUpWideNarrow,
   ChevronDown,
-  GitCommitVertical,
+  GitCommitHorizontal,
   History,
   Ellipsis,
   Tag,
@@ -155,7 +155,7 @@ export function GitChangelog({
               <ol className="fgc-list">
                 {ordered.map((commit) => (
                   <li key={commit.sha} data-commit={commit.sha} className="fgc-entry">
-                    <GitCommitVertical className="fgc-commit-icon" aria-hidden="true" />
+                    <GitCommitHorizontal className="fgc-commit-icon" aria-hidden="true" />
                     <div className="fgc-entry-body">
                       <CommitRow
                         commit={commit}

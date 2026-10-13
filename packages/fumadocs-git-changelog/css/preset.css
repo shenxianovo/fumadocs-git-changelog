@@ -152,8 +152,8 @@
 }
 .fgc-commit-icon {
   width: 16px;
-  height: 20px;
-  margin: 0.2rem auto 0;
+  height: 16px;
+  margin: 0.3rem auto 0;
   color: var(--color-fd-muted-foreground);
   opacity: 0.5;
 }
@@ -220,9 +220,7 @@
   font-size: 0.8125rem;
 }
 .fgc .fgc-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
+  display: inline;
   margin-inline-start: 0.5rem;
   color: var(--fgc-link);
   font-size: 0.75rem;
@@ -230,8 +228,12 @@
   text-decoration: none;
 }
 .fgc-tag svg {
+  display: inline-block;
   width: 12px;
   height: 12px;
+  margin-inline-end: 0.2rem;
+  /* The tag outline carries more visual weight above its geometric center. */
+  vertical-align: -0.2em;
 }
 .fgc-inline-authors {
   display: inline-flex;
