@@ -13,7 +13,7 @@ For MDX, wrap collection options with `applyMdxPreset` to retain Fumadocs headin
 
 ```ts title="source.config.ts"
 import { applyMdxPreset, defineDocs } from 'fumadocs-mdx/config';
-import { remarkGitChangelog } from 'fumadocs-git-changelog/remark';
+import { remarkGitChangelog } from 'fumadocs-page-history/remark';
 
 export const docs = defineDocs({
   docs: {
@@ -28,7 +28,7 @@ For Sätteri:
 
 ```ts title="source.config.ts"
 import { defineDocs } from 'fumadocs-mdx/config';
-import { gitChangelog } from 'fumadocs-git-changelog/satteri';
+import { gitChangelog } from 'fumadocs-page-history/satteri';
 
 export const docs = defineDocs({
   docs: {
@@ -63,7 +63,7 @@ Extend your existing page schema to enable per-page controls:
 ```ts title="source.config.ts"
 import { defineDocs } from 'fumadocs-mdx/config';
 import { pageSchema } from 'fumadocs-core/source/schema';
-import { gitChangelogSchema } from 'fumadocs-git-changelog/schema';
+import { gitChangelogSchema } from 'fumadocs-page-history/schema';
 
 export const docs = defineDocs({
   docs: { schema: pageSchema.extend(gitChangelogSchema.shape) },
@@ -128,12 +128,12 @@ Both compiler plugins and the Git reader accept this option. Manual author mappi
 
 Provide `GITHUB_TOKEN` to the **documentation build step**. You can reuse a token already used by other build-time GitHub integrations; a token configured only for a separate release step is not automatically available. Public repositories need no additional repository permission; fine-grained tokens for private repositories need **Contents: read**. Only `https://github.com` is supported. Tokens and identity emails are never included in generated pages or cached records.
 
-| Option        | Default                                      | Description                                                               |
-| ------------- | -------------------------------------------- | ------------------------------------------------------------------------- |
-| `token`       | None                                         | Build-time token. Missing tokens skip lookup with one warning.            |
-| `cacheDir`    | `node_modules/.cache/fumadocs-git-changelog` | Cache directory, relative to the Git root; `false` disables disk caching. |
-| `maxRequests` | `100`                                        | Request budget per reader/compiler worker.                                |
-| `timeoutMs`   | `5000`                                       | Timeout for each request.                                                 |
+| Option        | Default                                     | Description                                                               |
+| ------------- | ------------------------------------------- | ------------------------------------------------------------------------- |
+| `token`       | None                                        | Build-time token. Missing tokens skip lookup with one warning.            |
+| `cacheDir`    | `node_modules/.cache/fumadocs-page-history` | Cache directory, relative to the Git root; `false` disables disk caching. |
+| `maxRequests` | `100`                                       | Request budget per reader/compiler worker.                                |
+| `timeoutMs`   | `5000`                                      | Timeout for each request.                                                 |
 
 Successful mappings are cached for seven days. Unavailable or unassociated commits are cached for five minutes; network failures and rate limits are not persisted. Retain the cache directory in CI to reuse mappings between builds. Cache files store usernames and expiry times, with hashed identity keys, and are separated by repository.
 
@@ -172,7 +172,7 @@ The entire history header toggles the timeline; sorting is a separate button. Sc
 Extend your existing [Fumadocs translations](https://www.fumadocs.dev/docs/ui/translations) and pass them to `RootProvider`:
 
 ```ts
-import { gitChangelogTranslations, zhCN } from 'fumadocs-git-changelog/i18n';
+import { gitChangelogTranslations, zhCN } from 'fumadocs-page-history/i18n';
 
 const translations = i18n
   .translations()

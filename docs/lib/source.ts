@@ -2,8 +2,8 @@ import { loader } from 'fumadocs-core/source';
 import { pageSchema } from 'fumadocs-core/source/schema';
 import { defineDocs } from 'fumadocs-mdx/macro';
 import { applyMdxPreset } from 'fumadocs-mdx/config';
-import { remarkGitChangelog } from 'fumadocs-git-changelog/remark';
-import { gitChangelogSchema } from 'fumadocs-git-changelog/schema';
+import { remarkGitChangelog } from 'fumadocs-page-history/remark';
+import { gitChangelogSchema } from 'fumadocs-page-history/schema';
 
 const docs = defineDocs({
   dir: 'content/docs',
@@ -14,7 +14,7 @@ const docs = defineDocs({
         [
           remarkGitChangelog,
           {
-            repoURL: 'https://github.com/shenxianovo/fumadocs-git-changelog',
+            repoURL: 'https://github.com/shenxianovo/fumadocs-page-history',
             maxGitLogCount: 12,
             ...(process.env.GITHUB_TOKEN
               ? {

@@ -96,7 +96,7 @@ describe.each(['remark', 'satteri'] as const)('%s automatic footer', (compiler) 
             })
           ).code;
     const executable = code
-      .replaceAll('fumadocs-git-changelog/ui', probe)
+      .replaceAll('fumadocs-page-history/ui', probe)
       .replaceAll('react/jsx-runtime', import.meta.resolve('react/jsx-runtime'));
     const { default: Content, toc } = await import(
       `data:text/javascript,${encodeURIComponent(executable)}`
@@ -168,9 +168,9 @@ describe.each(['remark', 'satteri'] as const)('%s automatic footer', (compiler) 
     const invalidRepo = { ...options, cwd: '/this-checkout-does-not-exist' };
     expect(
       (await build({ settings: invalidRepo, frontmatter: { gitChangelog: false } })).code,
-    ).not.toContain('fumadocs-git-changelog/ui');
+    ).not.toContain('fumadocs-page-history/ui');
     expect((await build({ settings: { ...invalidRepo, filter: () => false } })).code).not.toContain(
-      'fumadocs-git-changelog/ui',
+      'fumadocs-page-history/ui',
     );
   });
 
@@ -188,7 +188,7 @@ describe.each(['remark', 'satteri'] as const)('%s automatic footer', (compiler) 
   });
 
   it('leaves untracked pages without an empty footer', async () => {
-    expect((await build({ file: 'new.mdx' })).code).not.toContain('fumadocs-git-changelog/ui');
+    expect((await build({ file: 'new.mdx' })).code).not.toContain('fumadocs-page-history/ui');
   });
 
   it('adds visible footer sections to the native TOC with matching component anchors', async () => {

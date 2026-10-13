@@ -3,7 +3,7 @@
   "changelog": [
     "@changesets/cli/changelog",
     {
-      "repo": "shenxianovo/fumadocs-git-changelog"
+      "repo": "shenxianovo/fumadocs-page-history"
     }
   ],
   "commit": false,
@@ -12,5 +12,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["fumadocs-git-changelog-docs"]
+  "ignore": ["fumadocs-page-history-docs"]
 }

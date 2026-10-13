@@ -1,6 +1,6 @@
 {
-  "name": "fumadocs-git-changelog",
-  "version": "0.1.1",
+  "name": "fumadocs-page-history",
+  "version": "0.2.0",
   "description": "Page Git history integration for Fumadocs",
   "keywords": [
     "changelog",
@@ -8,16 +8,16 @@
     "git",
     "react"
   ],
-  "homepage": "https://github.com/shenxianovo/fumadocs-git-changelog",
+  "homepage": "https://github.com/shenxianovo/fumadocs-page-history",
   "bugs": {
-    "url": "https://github.com/shenxianovo/fumadocs-git-changelog/issues"
+    "url": "https://github.com/shenxianovo/fumadocs-page-history/issues"
   },
   "license": "MIT",
   "author": "shenxianovo",
   "repository": {
     "type": "git",
-    "url": "https://github.com/shenxianovo/fumadocs-git-changelog.git",
-    "directory": "packages/fumadocs-git-changelog"
+    "url": "https://github.com/shenxianovo/fumadocs-page-history.git",
+    "directory": "packages/fumadocs-page-history"
   },
   "files": [
     "dist",

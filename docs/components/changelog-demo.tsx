@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { TranslationProvider } from '@fuma-translate/react';
-import { GitChangelog, GitContributors } from 'fumadocs-git-changelog/ui';
-import { zhCN } from 'fumadocs-git-changelog/i18n';
+import { GitChangelog, GitContributors } from 'fumadocs-page-history/ui';
+import { zhCN } from 'fumadocs-page-history/i18n';
 import { buttonVariants } from 'fumadocs-ui/components/ui/button';
 import commits from '@/lib/demo-history.json';
 

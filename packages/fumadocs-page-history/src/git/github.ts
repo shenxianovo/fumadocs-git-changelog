@@ -6,7 +6,7 @@ import { z } from 'zod';
 export interface GitHubOptions {
   /** Build-time only. Pass process.env.GITHUB_TOKEN; never sent to the browser. */
   token?: string;
-  /** Relative to the Git root. Defaults to node_modules/.cache/fumadocs-git-changelog. */
+  /** Relative to the Git root. Defaults to node_modules/.cache/fumadocs-page-history. */
   cacheDir?: string | false;
   /** Maximum requests per reader/compiler worker. Default: 100. */
   maxRequests?: number;
@@ -59,7 +59,7 @@ export function createGitHubResolver(
       if (options.cacheDir === false) return;
       return path.resolve(
         await getRoot(),
-        options.cacheDir ?? 'node_modules/.cache/fumadocs-git-changelog',
+        options.cacheDir ?? 'node_modules/.cache/fumadocs-page-history',
         hash(repository.toLowerCase()),
       );
     })());

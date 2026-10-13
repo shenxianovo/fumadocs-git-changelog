@@ -98,7 +98,7 @@ export function createFooter(options: GitChangelogOptions) {
           id: contributorsId,
           className: options.display?.className,
         };
-    const moduleName = 'fumadocs-git-changelog/ui';
+    const moduleName = 'fumadocs-page-history/ui';
     return [
       {
         type: 'mdxjsEsm',

@@ -1,5 +1,5 @@
 ---
-title: Git Changelog
+title: Page History
 description: Add Git history and contributors to your docs.
 ---
 
@@ -10,7 +10,7 @@ This is a community-maintained integration. Requires Node.js 24.14 or later and 
 Install the package:
 
 ```npm
-npm i fumadocs-git-changelog
+npm i fumadocs-page-history
 ```
 
 ### Add Styles
@@ -18,7 +18,7 @@ npm i fumadocs-git-changelog
 Add after your Fumadocs styles:
 
 ```css title="global.css"
-@import 'fumadocs-git-changelog/css/preset.css';
+@import 'fumadocs-page-history/css/preset.css';
 ```
 
 ### Configure Plugin
@@ -30,7 +30,7 @@ Add the plugin to your existing Fumadocs MDX configuration:
 
 ```ts title="source.config.ts"
 import { defineConfig } from 'fumadocs-mdx/config';
-import { remarkGitChangelog } from 'fumadocs-git-changelog/remark';
+import { remarkGitChangelog } from 'fumadocs-page-history/remark';
 
 export default defineConfig({
   mdxOptions: {
@@ -44,7 +44,7 @@ export default defineConfig({
 
 ```ts title="source.config.ts"
 import { defineConfig } from 'fumadocs-mdx/config';
-import { gitChangelog } from 'fumadocs-git-changelog/satteri';
+import { gitChangelog } from 'fumadocs-page-history/satteri';
 
 export default defineConfig({
   compiler: 'satteri',
@@ -75,4 +75,4 @@ Git must be available with a full checkout. On GitHub Actions:
 For an existing shallow clone, run `git fetch --unshallow`.
 History is included at build time; your deployed site does not need Git. Rebuild after commits, or restart the development server for Git-only changes. New files show history after their first commit.
 
-Inspired by [Nolebase Git Changelog](https://nolebase-integrations.ayaka.io/pages/en/integrations/git-changelog/).
+Inspired by [Nolebase Page History](https://nolebase-integrations.ayaka.io/pages/en/integrations/git-changelog/).

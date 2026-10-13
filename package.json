@@ -1,11 +1,11 @@
 {
-  "name": "fumadocs-git-changelog-workspace",
+  "name": "fumadocs-page-history-workspace",
   "private": true,
   "type": "module",
   "scripts": {
-    "plugin-build": "pnpm --filter fumadocs-git-changelog build",
-    "docs-dev": "pnpm plugin-build && pnpm --filter fumadocs-git-changelog-docs dev",
-    "docs-build": "pnpm plugin-build && pnpm --filter fumadocs-git-changelog-docs build",
+    "plugin-build": "pnpm --filter fumadocs-page-history build",
+    "docs-dev": "pnpm plugin-build && pnpm --filter fumadocs-page-history-docs dev",
+    "docs-build": "pnpm plugin-build && pnpm --filter fumadocs-page-history-docs build",
     "build": "pnpm docs-build",
     "dev": "pnpm docs-dev",
     "test": "pnpm plugin-build && vitest run",

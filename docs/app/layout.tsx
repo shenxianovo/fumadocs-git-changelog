@@ -3,7 +3,7 @@ import { RootProvider } from 'fumadocs-ui/provider/next';
 import './global.css';
 
 export const metadata: Metadata = {
-  title: { default: 'Git Changelog for Fumadocs', template: '%s | Git Changelog' },
+  title: { default: 'Page History for Fumadocs', template: '%s | Page History' },
   description: 'Per-page Git history and contributors for Fumadocs. A community integration.',
 };
 
