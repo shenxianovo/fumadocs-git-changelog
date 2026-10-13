@@ -70,7 +70,32 @@ The demo uses a saved snapshot of this project's public Git history with shenxia
 
 ## Releases
 
-Use `pnpm changeset` for package changes. Before a release, run `pnpm check` and inspect the package with `pnpm --filter fumadocs-git-changelog exec npm pack --dry-run`. Package versioning and publishing are manual.
+Use `pnpm changeset` for package changes. To release, run `pnpm changeset version`, commit the updated package version and changelog, and push that commit to `main`. Then create and push a matching version tag:
+
+```sh
+git tag v0.1.1
+git push origin v0.1.1
+```
+
+Replace `v0.1.1` with `v` followed by the version in `packages/fumadocs-git-changelog/package.json`. Tags must point to commits on `main`; published versions cannot be reused. CI runs the complete validation and package inspection before publishing to npm. Stable releases use the `latest` dist-tag; prereleases such as `v0.2.0-beta.1` use `next`. Pushing a branch or opening a pull request does not publish a package.
+
+Publishing uses [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) from GitHub Actions. Configure the package's trusted publisher once on npm with:
+
+| Field                | Value                                       |
+| -------------------- | ------------------------------------------- |
+| Organization or user | `shenxianovo`                               |
+| Repository           | `fumadocs-git-changelog`                    |
+| Workflow filename    | `ci.yml`                                    |
+| Environment name     | Leave empty                                 |
+| Allowed action       | Enable direct publishing with `npm publish` |
+
+No npm token secret is needed. If you prefer the npm CLI, log in with an account that has package write access and 2FA enabled, then run:
+
+```sh
+npm trust github fumadocs-git-changelog --repository shenxianovo/fumadocs-git-changelog --file ci.yml --allow-publish
+```
+
+Complete the first publish within two days of configuring the trusted publisher; otherwise npm expires the configuration and it must be created again.
 
 ## Documentation deployment
 
