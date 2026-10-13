@@ -1,4 +1,11 @@
-/** Public metadata only. Git identities and email aliases stay in the Git reader. */
+export interface Repository {
+  /** Public HTTP(S) repository URL, without credentials, query, or fragment. */
+  url: string;
+  /** Optional directory inside the local checkout; normally discovered automatically. */
+  directory?: string;
+}
+
+/** Public metadata only. Git identities and author mappings stay in the Git reader. */
 export interface HistoryAuthor {
   name: string;
   avatarUrl?: string;
@@ -16,7 +23,7 @@ export interface HistoryCommit {
   description: string;
   authors: HistoryAuthor[];
   url: string;
-  repoURL?: string;
+  repositoryUrl?: string;
   tags?: { name: string; url: string }[];
 }
 

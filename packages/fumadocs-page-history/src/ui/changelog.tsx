@@ -18,17 +18,23 @@ import {
   Ellipsis,
   Tag,
 } from 'lucide-react';
-import type { HistoryAuthor, HistoryCommit } from '../index';
+import type { HistoryAuthor, HistoryCommit, Repository } from '../index';
 import { GitContributors } from './contributors';
 import { GitChangelogLabel } from './label';
 import { CommitMessage } from './message';
-import { Author, HistoryDate, HistoryLink, isFreshChange, useNow } from './shared';
+import {
+  Author,
+  HistoryDate,
+  HistoryLink,
+  isFreshChange,
+  useNow,
+  useBrowserTimeZone,
+} from './shared';
 
 export interface GitChangelogProps {
   commits: readonly HistoryCommit[];
   authors?: readonly HistoryAuthor[];
   locale?: string;
-  timeZone?: string;
   defaultExpanded?: boolean;
   showContributors?: boolean;
   hideChangelogHeader?: boolean;
@@ -38,8 +44,8 @@ export interface GitChangelogProps {
   displayAuthorsInsideCommitLine?: boolean;
   commitsRelativeTime?: boolean;
   numCommitHashLetters?: number;
-  /** Needed for issue links in manually supplied commits without repoURL. */
-  repoURL?: string;
+  /** Needed for issue links in manually supplied commits without repositoryUrl. */
+  repository?: Pick<Repository, 'url'>;
   id?: string;
   contributorsId?: string;
   className?: string;
@@ -49,7 +55,6 @@ export function GitChangelog({
   commits,
   authors = [],
   locale = 'en',
-  timeZone = 'UTC',
   defaultExpanded = false,
   showContributors = true,
   hideChangelogHeader = false,
@@ -59,7 +64,7 @@ export function GitChangelog({
   displayAuthorsInsideCommitLine = false,
   commitsRelativeTime = false,
   numCommitHashLetters = 7,
-  repoURL,
+  repository,
   id,
   contributorsId,
   className = '',
@@ -69,6 +74,7 @@ export function GitChangelog({
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [oldestFirst, setOldestFirst] = useState(false);
   const now = useNow();
+  const timeZone = useBrowserTimeZone();
   const newest = [...commits].sort(
     (a, b) => Date.parse(b.date) - Date.parse(a.date) || a.sha.localeCompare(b.sha),
   );
@@ -160,7 +166,7 @@ export function GitChangelog({
                       <CommitRow
                         commit={commit}
                         hashLength={hashLength}
-                        repoURL={repoURL}
+                        repositoryUrl={repository?.url}
                         locale={locale}
                         displayAuthors={displayAuthorsInsideCommitLine}
                         date={date(commit.date)}
@@ -180,14 +186,14 @@ export function GitChangelog({
 function CommitRow({
   commit,
   hashLength,
-  repoURL,
+  repositoryUrl,
   locale,
   displayAuthors,
   date,
 }: {
   commit: HistoryCommit;
   hashLength: number;
-  repoURL?: string;
+  repositoryUrl?: string;
   locale: string;
   displayAuthors: boolean;
   date: React.ReactNode;
@@ -203,7 +209,11 @@ function CommitRow({
         -{' '}
       </span>
       <span className="fgc-row-text">
-        <CommitMessage message={commit.message} repoURL={commit.repoURL ?? repoURL} inline />
+        <CommitMessage
+          message={commit.message}
+          repositoryUrl={commit.repositoryUrl ?? repositoryUrl}
+          inline
+        />
         {commit.tags?.map((tag) => (
           <HistoryLink key={tag.name} href={tag.url} className="fgc-tag">
             <Tag aria-hidden="true" />
@@ -235,7 +245,10 @@ function CommitRow({
       {content}
       <CollapsibleContent>
         <div className="fgc-details">
-          <CommitMessage message={commit.description} repoURL={commit.repoURL ?? repoURL} />
+          <CommitMessage
+            message={commit.description}
+            repositoryUrl={commit.repositoryUrl ?? repositoryUrl}
+          />
         </div>
       </CollapsibleContent>
     </Collapsible>

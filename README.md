@@ -12,16 +12,19 @@ Per-page Git history and contributors for Fumadocs. A community-maintained integ
 
 ## Quick start
 
-Requires Node.js 24.14 or later, Git with a complete checkout, and Fumadocs 16.17 or later.
+Requires Node.js 24.14+, Fumadocs 16.17+, and Git with a complete checkout.
 
 ```sh
 pnpm add fumadocs-page-history
 ```
 
+Import the stylesheet after your Fumadocs styles:
+
 ```css
-/* After your Fumadocs styles */
 @import 'fumadocs-page-history/css/preset.css';
 ```
+
+Register the compiler plugin. The repository URL is the only required setting:
 
 ```ts
 import { defineConfig } from 'fumadocs-mdx/config';
@@ -33,7 +36,7 @@ export default defineConfig({
       [
         remarkGitChangelog,
         {
-          repoURL: 'https://github.com/owner/repository',
+          repository: { url: 'https://github.com/owner/repository' },
         },
       ],
     ],
@@ -41,11 +44,26 @@ export default defineConfig({
 });
 ```
 
-Register the plugin only for the documentation collection if your site also compiles blog posts or other MDX content. Collections with their own compiler options register it there. React homepages are unaffected.
+Each committed document gets contributors and a collapsible history after its body. No page-template changes are needed. Register the plugin in the documentation collection if your site also compiles other MDX content.
 
-History is collected during compilation. Rebuild after new commits; restart the development server after Git-only changes. In CI, use `actions/checkout` with `fetch-depth: 0`.
+To associate a Git author with a GitHub account, add an optional mapping:
 
-See [Setup](docs/content/docs/index.mdx), [Configuration](docs/content/docs/configuration.mdx), and [Advanced API](docs/content/docs/manual.mdx). Both Radix UI (`fumadocs-ui`) and Base UI (`fumadocs-ui` aliased to `@fumadocs/base-ui`) are supported.
+```ts
+{
+  repository: { url: 'https://github.com/owner/repository' },
+  authorMappings: [
+    { gitName: 'Alex', githubUsername: 'alex' },
+  ],
+}
+```
+
+Mappings supply profile links and avatars without GitHub API requests. Without mappings, GitHub noreply emails supply accounts; other authors appear with their Git names and initials.
+
+Dates use the reader's browser time zone. Server HTML starts in UTC and switches after hydration. For Chinese labels and dates, follow the [Chinese setup](https://fumadocs-page-history.vercel.app/docs/localization).
+
+History is collected at compilation time. New files need a first commit; restart the development server after Git-only changes. Use a complete checkout (`fetch-depth: 0` in GitHub Actions). The deployed site does not need Git.
+
+See [Setup](https://fumadocs-page-history.vercel.app/docs), [Configuration](https://fumadocs-page-history.vercel.app/docs/configuration), and [Troubleshooting](https://fumadocs-page-history.vercel.app/docs/troubleshooting). Both Radix UI and Base UI are supported. Sätteri uses `gitChangelog` from `fumadocs-page-history/satteri` with the same settings.
 
 ## Workspace
 
@@ -73,11 +91,11 @@ The demo uses a saved snapshot of this project's public Git history with shenxia
 Use `pnpm changeset` for package changes. To release, run `pnpm changeset version`, commit the updated package version and changelog, and push that commit to `main`. Then create and push a matching version tag:
 
 ```sh
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.3.0
+git push origin v0.3.0
 ```
 
-Replace `v0.2.0` with `v` followed by the version in `packages/fumadocs-page-history/package.json`. Tags must point to commits on `main`; published versions cannot be reused. CI runs the complete validation and package inspection before publishing to npm. Stable releases use the `latest` dist-tag; prereleases such as `v0.3.0-beta.1` use `next`. Pushing a branch or opening a pull request does not publish a package.
+Replace `v0.3.0` with `v` followed by the version in `packages/fumadocs-page-history/package.json`. Tags must point to commits on `main`; published versions cannot be reused. CI runs the complete validation and package inspection before publishing to npm. Stable releases use the `latest` dist-tag; prereleases such as `v0.3.0-beta.1` use `next`. Pushing a branch or opening a pull request does not publish a package.
 
 Publishing uses [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) from GitHub Actions. Configure the package's trusted publisher once on npm with:
 

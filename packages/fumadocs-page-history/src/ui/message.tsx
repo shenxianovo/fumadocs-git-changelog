@@ -11,9 +11,9 @@ interface MarkdownNode {
   children?: MarkdownNode[];
 }
 
-function remarkIssues({ repoURL }: { repoURL?: string }) {
+function remarkIssues({ repositoryUrl }: { repositoryUrl?: string }) {
   return (tree: MarkdownNode) => {
-    if (!safeURL(repoURL)) return;
+    if (!safeURL(repositoryUrl)) return;
     function visit(node: MarkdownNode) {
       if (
         ['link', 'linkReference', 'image', 'imageReference', 'code', 'inlineCode', 'html'].includes(
@@ -31,7 +31,7 @@ function remarkIssues({ repoURL }: { repoURL?: string }) {
           /^#\d+$/.test(part)
             ? {
                 type: 'link',
-                url: `${repoURL!.replace(/\/$/, '')}/issues/${part.slice(1)}`,
+                url: `${repositoryUrl!.replace(/\/$/, '')}/issues/${part.slice(1)}`,
                 children: [{ type: 'text', value: part }],
               }
             : { type: 'text', value: part },
@@ -45,11 +45,11 @@ function remarkIssues({ repoURL }: { repoURL?: string }) {
 /** Parse Markdown into React nodes, with no raw HTML and no links inside code or links. */
 export function CommitMessage({
   message,
-  repoURL,
+  repositoryUrl,
   inline = false,
 }: {
   message: string;
-  repoURL?: string;
+  repositoryUrl?: string;
   inline?: boolean;
 }) {
   const Wrapper = inline ? 'span' : 'div';
@@ -59,7 +59,7 @@ export function CommitMessage({
         skipHtml
         allowedElements={inline ? ['a', 'strong', 'em', 'code', 'del', 'br', 'img'] : undefined}
         unwrapDisallowed
-        remarkPlugins={[[remarkIssues, { repoURL }]]}
+        remarkPlugins={[[remarkIssues, { repositoryUrl }]]}
         components={{
           a: ({ href, children }) =>
             href ? <Link href={href}>{children}</Link> : <span>{children}</span>,

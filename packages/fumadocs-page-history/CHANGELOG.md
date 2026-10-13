@@ -1,5 +1,13 @@
 # fumadocs-page-history
 
+## 0.3.0
+
+### Minor Changes
+
+- Replace flat repository and registry settings with `repository` and explicit `authorMappings`. Support copied content through declarative locations with native path resolution. Explain missing history in development, use the reader's browser time zone after hydration, and reorganize setup, localization, configuration, and troubleshooting documentation.
+
+  This changes the configuration interface: consumers must update repository, account-mapping, and manual UI settings. The public commit URL context is now `repositoryUrl`; time zones are detected automatically.
+
 ## 0.2.0
 
 ### Minor Changes

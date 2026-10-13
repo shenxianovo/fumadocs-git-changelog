@@ -14,7 +14,8 @@ const docs = defineDocs({
         [
           remarkGitChangelog,
           {
-            repoURL: 'https://github.com/shenxianovo/fumadocs-page-history',
+            repository: { url: 'https://github.com/shenxianovo/fumadocs-page-history' },
+            authorMappings: [{ gitName: 'shenxianovo', githubUsername: 'shenxianovo' }],
             maxGitLogCount: 12,
             ...(process.env.GITHUB_TOKEN
               ? {

@@ -1,4 +1,3 @@
-import { realpathSync } from 'node:fs';
 import path from 'node:path';
 import { valueToEstree } from 'estree-util-value-to-estree';
 import type { Heading, Root } from 'mdast';
@@ -8,17 +7,21 @@ import type { MdxjsEsm, MdxJsxFlowElement } from 'mdast-util-mdx';
 import { createHistoryReader, resolveAuthors, type HistoryOptions } from '../git';
 import { shouldShowChangelog, shouldShowContributors, type ChangelogFrontmatter } from '../index';
 import type { GitChangelogProps } from '../ui/changelog';
+import { resolveContentPath, type ContentLocation } from '../paths';
 
 export interface GitChangelogOptions extends HistoryOptions {
+  /** Optional location mapping for documents copied outside their checkout. */
+  content?: ContentLocation;
   /** Select documents by their absolute source path. Defaults to every document. */
   filter?: (filePath: string) => boolean;
   /** Serializable UI defaults, shared by every injected footer. */
-  display?: Omit<GitChangelogProps, 'commits' | 'authors' | 'repoURL'>;
+  display?: Omit<GitChangelogProps, 'commits' | 'authors' | 'repository'>;
 }
 
-/** Build-time only: no Git options, registry, or Node imports enter the generated module. */
+/** Build-time only: no Git options, author mappings, or Node imports enter the generated module. */
 export function createFooter(options: GitChangelogOptions) {
   let reader: ReturnType<typeof createHistoryReader> | undefined;
+  const reported = new Set<string>();
   return async function footer(
     filePath: string,
     frontmatter: ChangelogFrontmatter,
@@ -32,17 +35,27 @@ export function createFooter(options: GitChangelogOptions) {
       shouldShowContributors(frontmatter) && options.display?.showContributors !== false;
     if (!showChangelog && !showContributors) return;
 
-    reader ??= createHistoryReader({ ...options, cwd: options.cwd ?? path.dirname(absolutePath) });
+    reader ??= createHistoryReader({
+      ...options,
+      repository: {
+        ...options.repository,
+        directory: options.repository.directory ?? path.dirname(absolutePath),
+      },
+    });
     const root = await reader.getRoot();
-    // Git resolves symlinked checkout directories (e.g. macOS /var -> /private/var).
-    const canonicalPath = path.join(
-      realpathSync(path.dirname(absolutePath)),
-      path.basename(absolutePath),
-    );
-    const commits = await reader.read(path.relative(root, canonicalPath));
-    const authors = resolveAuthors(frontmatter.authors ?? [], options.registry);
+    const gitPath = resolveContentPath(absolutePath, root, options.content);
+    const commits = await reader.read(gitPath);
+    const authors = resolveAuthors(frontmatter.authors ?? [], options.authorMappings);
     // New, untracked documents have no published history to show yet.
-    if (commits.length === 0 && authors.length === 0) return;
+    if (commits.length === 0 && authors.length === 0) {
+      if (process.env.NODE_ENV === 'development' && !reported.has(absolutePath)) {
+        reported.add(absolutePath);
+        console.info(
+          `[fumadocs-page-history] No Git history for ${gitPath}; skipping the footer. New pages show history after their first commit. Restart the dev server after Git-only changes.`,
+        );
+      }
+      return;
+    }
 
     const source = JSON.stringify(tree);
     const headingText = slug(toString(tree));
@@ -85,7 +98,7 @@ export function createFooter(options: GitChangelogOptions) {
           ...options.display,
           commits,
           authors,
-          repoURL: options.repoURL,
+          repository: { url: options.repository.url },
           showContributors,
           id: historyId,
           contributorsId,

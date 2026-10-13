@@ -16,9 +16,10 @@ import type { ChangelogFrontmatter } from '../src';
 const cwd = mkdtempSync(path.join(tmpdir(), 'fumadocs-auto-history-'));
 const message = 'Document "quotes", {braces}, </script> and `backticks`';
 const options: GitChangelogOptions = {
-  cwd,
-  repoURL: 'https://github.com/example/docs',
-  registry: [{ name: 'Public name', mapByEmailAliases: ['private@example.test'] }],
+  repository: { directory: cwd, url: 'https://github.com/example/docs' },
+  authorMappings: [
+    { displayName: 'Public name', githubUsername: 'public-user', gitEmail: 'private@example.test' },
+  ],
 };
 const source = '# Article\n\nOriginal content.\n\n```md\nUnclosed code fence';
 
@@ -120,7 +121,11 @@ describe.each(['remark', 'satteri'] as const)('%s automatic footer', (compiler) 
     vi.stubGlobal('fetch', fetcher);
     try {
       const { code, html } = await build({
-        settings: { ...options, registry: [], github: { token: 'secret-token', cacheDir: false } },
+        settings: {
+          ...options,
+          authorMappings: [],
+          github: { token: 'secret-token', cacheDir: false },
+        },
       });
       expect(html).toContain('https://github.com/public-user.png');
       expect(code).not.toContain('secret-token');
@@ -135,7 +140,7 @@ describe.each(['remark', 'satteri'] as const)('%s automatic footer', (compiler) 
             await build({
               settings: {
                 ...options,
-                registry: [],
+                authorMappings: [],
                 github: { token: 'secret-token', cacheDir: false },
               },
             })
@@ -165,7 +170,10 @@ describe.each(['remark', 'satteri'] as const)('%s automatic footer', (compiler) 
   );
 
   it('skips disabled and filtered pages before accessing Git', async () => {
-    const invalidRepo = { ...options, cwd: '/this-checkout-does-not-exist' };
+    const invalidRepo = {
+      ...options,
+      repository: { ...options.repository, directory: '/this-checkout-does-not-exist' },
+    };
     expect(
       (await build({ settings: invalidRepo, frontmatter: { gitChangelog: false } })).code,
     ).not.toContain('fumadocs-page-history/ui');

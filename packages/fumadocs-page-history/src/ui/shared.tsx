@@ -81,6 +81,15 @@ export function useNow() {
   return now;
 }
 
+/** UTC keeps server and initial client output identical; mounted pages use the browser zone. */
+export function useBrowserTimeZone() {
+  const [timeZone, setTimeZone] = useState('UTC');
+  useEffect(() => {
+    setTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  }, []);
+  return timeZone;
+}
+
 export function relativeDate(value: string, now: number, locale: string): string {
   const seconds = (Date.parse(value) - now) / 1000;
   const units: [Intl.RelativeTimeFormatUnit, number][] = [

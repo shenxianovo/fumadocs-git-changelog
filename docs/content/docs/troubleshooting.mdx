@@ -1,0 +1,43 @@
+---
+title: Troubleshooting
+description: Understand missing footers, stale history, and build requirements.
+---
+
+## No footer on a new page
+
+A page without commits or explicit contributors has no footer. In development (`NODE_ENV=development`), the plugin reports the Git path and explains that a first commit is needed. Each plugin instance reports a given file once.
+
+Commit the page, then restart the development server. If the logged path is unexpected, check an optional [content location mapping](/docs/configuration#copied-documents).
+
+## History did not update after a commit
+
+History is compiled into the page. A Git-only change does not invalidate the MDX compiler automatically. Restart the development server or produce a fresh production build. The package does not watch Git internals.
+
+## No footer on an existing page
+
+Check these in order:
+
+1. The compiler plugin is registered in the collection that actually compiles this page. Collection compiler settings replace global settings.
+2. The page is not excluded by `filter` or frontmatter controls.
+3. The file has committed history under the resolved Git path.
+4. The source is Markdown or MDX. Generated OpenAPI pages and React pages do not run the compiler plugin; custom content pipelines can use the [Git reader and UI](/docs/manual).
+
+## Git is missing or the checkout is shallow
+
+Git and its full history must be available during compilation. Missing Git, an unavailable checkout, and failed Git commands fail the build. Shallow clones are rejected so the site does not publish partial history.
+
+Run `git fetch --unshallow` for an existing shallow clone. GitHub Actions needs `actions/checkout` with `fetch-depth: 0`.
+
+The deployed site does not need Git when using the compiler plugin. Custom content pipelines can generate a JSON snapshot before deployment; see [Advanced API](/docs/manual).
+
+## A contributor has initials instead of an avatar
+
+Git names and ordinary emails do not identify a GitHub account. Add an [author mapping](/docs/configuration#author-mappings), or enable optional GitHub lookup. Manual mappings and GitHub noreply identities need no token. API lookup needs a build-time token and a commit already present in the configured GitHub repository.
+
+## Dates are Chinese but labels are English
+
+`display.locale` changes date formatting and contributor names. Labels come from the site's translation provider. Follow the complete [Chinese setup](/docs/localization).
+
+## A date changes after the page loads
+
+Server HTML starts in UTC, then the browser applies the reader's time zone. This can cross a calendar-day boundary. Commit instants remain unchanged in each `time` element's `datetime` attribute; the tooltip shows the local date, time, and time zone.

@@ -1,184 +1,179 @@
 ---
 title: Configuration
-description: Configure history, contributors, display, and translations.
+description: Required settings, optional account mappings, and advanced controls.
 ---
 
-Both compiler plugins accept the same options.
+Both compiler plugins accept the same settings. Start with the [minimal setup](/docs); most sites need only `repository.url`.
+
+## Required and optional settings
+
+| Setting                | Required | Default                         | Meaning                                                          |
+| ---------------------- | -------- | ------------------------------- | ---------------------------------------------------------------- |
+| `repository.url`       | Yes      | —                               | Public HTTP(S) repository URL used for commit and release links. |
+| `authorMappings`       | No       | `[]`                            | Explicit Git-identity-to-GitHub-account associations.            |
+| `display`              | No       | Built-in defaults               | Locale and presentation controls.                                |
+| `github`               | No       | Disabled                        | Optional build-time GitHub account lookup.                       |
+| `repository.directory` | No       | Auto-discovered                 | A directory inside the local checkout, used to locate Git.       |
+| `content`              | No       | Files keep their checkout paths | Location mapping for documents copied to another directory.      |
+
+`repository.url` must have no credentials, query, or fragment. It is provided explicitly and is never inferred from remote credentials. Local paths and account-matching selectors stay in the build process.
+
+## Author mappings
+
+```ts
+const options = {
+  repository: { url: 'https://github.com/owner/repository' },
+  authorMappings: [
+    { gitName: 'Alex', githubUsername: 'alex' },
+    { gitEmail: 'alex@example.com', githubUsername: 'alex' },
+  ],
+};
+```
+
+Every mapping needs `githubUsername` and at least one of `gitName` or `gitEmail`. Names and emails ignore case and surrounding whitespace. When both selectors are present, **both must match**. Email-qualified mappings take precedence over name-only mappings. Multiple mappings can credit the same account.
+
+| Mapping field    | Required              | Meaning                                                    |
+| ---------------- | --------------------- | ---------------------------------------------------------- |
+| `githubUsername` | Yes                   | GitHub account used for its profile and avatar.            |
+| `gitName`        | At least one selector | Git author name to match.                                  |
+| `gitEmail`       | At least one selector | Git author email to match.                                 |
+| `displayName`    | No                    | Public name; defaults to `githubUsername`.                 |
+| `avatar`, `url`  | No                    | Override the avatar or profile URL.                        |
+| `i18n`           | No                    | Public names by locale, such as `{ 'zh-CN': '亚历克斯' }`. |
+
+Resolution order is explicit mappings, GitHub noreply addresses, then optional GitHub lookup for unresolved primary authors. Other identities keep their Git names and initials. Account names are never guessed from arbitrary Git names or emails.
+
+Each account counts once per commit, including co-authors. Counts reflect returned history records. Matching emails and selectors are not included in public author records.
+
+## Display
+
+Set `display` in plugin settings, or pass these props to `GitChangelog`:
+
+```ts
+const display = {
+  locale: 'zh-CN',
+  defaultExpanded: true,
+  commitsRelativeTime: true,
+};
+```
+
+| Setting                                         | Default   | Effect                                                 |
+| ----------------------------------------------- | --------- | ------------------------------------------------------ |
+| `locale`                                        | `en`      | Date formatting and localized contributor names.       |
+| `defaultExpanded`                               | `false`   | Show the timeline on initial render.                   |
+| `commitsRelativeTime`                           | `false`   | Relative dates for commit rows.                        |
+| `showContributors`                              | `true`    | Show contributors above the timeline.                  |
+| `hideChangelogHeader`, `hideContributorsHeader` | `false`   | Hide section headings and their TOC entries.           |
+| `hideChangelogNoChangesText`                    | `false`   | Hide an empty-history message in manually rendered UI. |
+| `hideSortBy`                                    | `false`   | Hide the sorting button.                               |
+| `displayAuthorsInsideCommitLine`                | `false`   | Add avatars beside each commit.                        |
+| `numCommitHashLetters`                          | `7`       | Short commit hash length.                              |
+| `id`, `contributorsId`                          | Automatic | Override the section anchors.                          |
+| `className`                                     | —         | Add wrapper classes.                                   |
+
+Dates use the browser's time zone. Server HTML and the initial client render use UTC; mounted pages use the browser zone. A date near midnight may change after hydration. There is no time-zone setting.
+
+`locale` controls dates and contributor names. Interface labels use the site's translation provider; see the complete [Chinese setup](/docs/localization).
+
+Visible section headings appear in **On this page**. Automatic anchors avoid existing headings. Multiple manual instances need distinct IDs; a custom `id` gives contributors the default anchor `<id>-contributors`. Screens up to 640px hide commit hashes to leave space for messages.
+
+## Per-page controls
+
+Extend your page schema while keeping existing compiler settings:
+
+```ts
+import { pageSchema } from 'fumadocs-core/source/schema';
+import { gitChangelogSchema } from 'fumadocs-page-history/schema';
+
+const schema = pageSchema.extend(gitChangelogSchema.shape);
+```
+
+| Frontmatter                                   | Effect                                                                  |
+| --------------------------------------------- | ----------------------------------------------------------------------- |
+| `gitChangelog: false`                         | Disable both sections and skip Git.                                     |
+| `gitChangelog: { disableChangelog: true }`    | Show contributors only.                                                 |
+| `gitChangelog: { disableContributors: true }` | Show history only.                                                      |
+| `authors: [alex]`                             | Add explicit contributors by mapped account, display name, or Git name. |
+
+Explicit contributors can be credited without commits. Pages with neither commits nor explicit contributors have no footer.
 
 ## Collection options
 
-A collection's compiler options replace global options. Register the plugin inside the collection when it has its own configuration:
+A collection's compiler options replace global options. Register the plugin there if the collection has its own options. For MDX, retain the Fumadocs preset:
 
-For MDX, wrap collection options with `applyMdxPreset` to retain Fumadocs headings, table of contents, and code highlighting:
-
-```ts title="source.config.ts"
+```ts
 import { applyMdxPreset, defineDocs } from 'fumadocs-mdx/config';
 import { remarkGitChangelog } from 'fumadocs-page-history/remark';
 
 export const docs = defineDocs({
   docs: {
     mdxOptions: applyMdxPreset({
-      remarkPlugins: [[remarkGitChangelog, { repoURL: 'https://github.com/owner/repository' }]],
+      remarkPlugins: [
+        [
+          remarkGitChangelog,
+          {
+            repository: { url: 'https://github.com/owner/repository' },
+          },
+        ],
+      ],
     }),
   },
 });
 ```
 
-For Sätteri:
+Sätteri collections register `gitChangelog(options)` in `docs.satteriOptions.mdastPlugins` and set `docs.compiler` to `'satteri'`.
 
-```ts title="source.config.ts"
-import { defineDocs } from 'fumadocs-mdx/config';
-import { gitChangelog } from 'fumadocs-page-history/satteri';
+## Advanced Git controls
 
-export const docs = defineDocs({
-  docs: {
-    compiler: 'satteri',
-    satteriOptions: {
-      mdastPlugins: [gitChangelog({ repoURL: 'https://github.com/owner/repository' })],
-    },
+| Setting            | Default                | Meaning                                                      |
+| ------------------ | ---------------------- | ------------------------------------------------------------ |
+| `filter`           | All documents          | Select absolute source paths; excluded pages skip Git.       |
+| `maxGitLogCount`   | All commits            | Limit sorted results; Git still reads the full file history. |
+| `excludeBots`      | `true`                 | Exclude bots from contributors, retaining their commits.     |
+| `getCommitURL`     | Repository commit URL  | Customize commit links for another Git host.                 |
+| `getReleaseTagURL` | Repository release URL | Customize release tag links.                                 |
+
+History follows Git-detected renames, includes merge changes relative to the first parent, and sorts by author date. Lightweight and annotated tags are supported. Commit Markdown links `#123` to `/issues/123`; raw HTML is disabled.
+
+### Copied documents
+
+When compilation uses a copy of your documents, declare where it belongs in the checkout:
+
+```ts
+{
+  repository: {
+    url: 'https://github.com/owner/repository',
+    directory: '/workspace/repository',
   },
-});
-```
-
-## Git options
-
-| Option             | Default            | Description                                                                  |
-| ------------------ | ------------------ | ---------------------------------------------------------------------------- |
-| `repoURL`          | Required           | Public repository URL; HTTP(S), without credentials, query, or fragment.     |
-| `cwd`              | Document directory | A directory inside the Git checkout.                                         |
-| `filter`           | All documents      | `(absolutePath: string) => boolean`; excluded pages skip Git.                |
-| `maxGitLogCount`   | All commits        | Limit returned records after sorting; Git still reads the full file history. |
-| `excludeBots`      | `true`             | Exclude bots from contributors, while retaining their commits.               |
-| `registry`         | `[]`               | Author names, aliases, profiles, and avatars.                                |
-| `github`           | Disabled           | Optional build-time GitHub account lookup; see below.                        |
-| `getCommitURL`     | GitHub path        | `(commit) => string` for other Git hosts.                                    |
-| `getReleaseTagURL` | GitHub path        | `(tag, commit) => string` for other Git hosts.                               |
-
-The reader follows Git-detected renames, includes merge changes relative to the first parent, and sorts by author date. Lightweight and annotated tags are supported. Commit Markdown links `#123` to the repository's `/issues/123` path; raw HTML is disabled.
-
-## Frontmatter controls
-
-Extend your existing page schema to enable per-page controls:
-
-```ts title="source.config.ts"
-import { defineDocs } from 'fumadocs-mdx/config';
-import { pageSchema } from 'fumadocs-core/source/schema';
-import { gitChangelogSchema } from 'fumadocs-page-history/schema';
-
-export const docs = defineDocs({
-  docs: { schema: pageSchema.extend(gitChangelogSchema.shape) },
-});
-```
-
-Keep your existing compiler options when adding the schema.
-
-| Frontmatter                                   | Effect                                      |
-| --------------------------------------------- | ------------------------------------------- |
-| `gitChangelog: false`                         | Disable both sections.                      |
-| `gitChangelog: { disableChangelog: true }`    | Contributors only.                          |
-| `gitChangelog: { disableContributors: true }` | History only.                               |
-| `authors: [Alex]`                             | Add contributors by registry name or alias. |
-
-Both sections disabled skips Git entirely. Pages without commits or additional contributors have no footer.
-
-## Contributors
-
-Use `registry` in your plugin options to merge aliases and customize contributor details:
-
-```ts
-const options = {
-  repoURL: 'https://github.com/owner/repository',
-  registry: [
-    {
-      name: 'Alex',
-      username: 'alex',
-      mapByNameAliases: ['Old name'],
-      mapByEmailAliases: ['alex@example.com'],
-    },
-  ],
-};
-```
-
-| Field                                   | Description                                          |
-| --------------------------------------- | ---------------------------------------------------- |
-| `name`                                  | Public display name, required.                       |
-| `username`                              | GitHub username for profile and avatar.              |
-| `url`, `avatar`                         | Override the profile URL or avatar URL/site path.    |
-| `i18n`                                  | Names by locale, e.g. `{ 'zh-CN': '亚历克斯' }`.     |
-| `mapByNameAliases`, `mapByEmailAliases` | Git identity aliases. Email aliases take precedence. |
-
-Aliases ignore case and surrounding whitespace. Without a match, GitHub noreply addresses supply profiles; other authors use their Git name and initials. Emails and alias mappings are not included in public author records.
-
-Authors and `Co-authored-by` contributors count once per commit. Counts use the returned history records. Additional `authors` can credit people without commits.
-
-## GitHub accounts
-
-Optionally associate ordinary commit emails with GitHub accounts during compilation:
-
-```ts
-const options = {
-  repoURL: 'https://github.com/owner/repository',
-  github: {
-    token: process.env.GITHUB_TOKEN,
+  content: {
+    directory: '/workspace/document-copy',
+    pathInRepository: 'apps/docs/content',
   },
-};
+}
 ```
 
-Both compiler plugins and the Git reader accept this option. Manual author mappings take precedence, followed by GitHub `noreply` emails. For remaining primary authors, the reader queries the commit's GitHub account and adds its profile and avatar. It does not guess accounts from names or assign the primary author's account to co-authors. The commit must be available in the configured GitHub repository.
+A copied `guide.mdx` reads history for `apps/docs/content/guide.mdx`. The package resolves native Windows or POSIX disk paths, handles symlinked directories, and produces Git-relative paths internally. Files outside `content.directory` and repository paths that escape the checkout are rejected. Use `pathInRepository: '.'` when the content directory represents the repository root.
 
-Provide `GITHUB_TOKEN` to the **documentation build step**. You can reuse a token already used by other build-time GitHub integrations; a token configured only for a separate release step is not automatically available. Public repositories need no additional repository permission; fine-grained tokens for private repositories need **Contents: read**. Only `https://github.com` is supported. Tokens and identity emails are never included in generated pages or cached records.
+## Optional GitHub lookup
 
-| Option        | Default                                     | Description                                                               |
-| ------------- | ------------------------------------------- | ------------------------------------------------------------------------- |
-| `token`       | None                                        | Build-time token. Missing tokens skip lookup with one warning.            |
-| `cacheDir`    | `node_modules/.cache/fumadocs-page-history` | Cache directory, relative to the Git root; `false` disables disk caching. |
-| `maxRequests` | `100`                                       | Request budget per reader/compiler worker.                                |
-| `timeoutMs`   | `5000`                                      | Timeout for each request.                                                 |
-
-Successful mappings are cached for seven days. Unavailable or unassociated commits are cached for five minutes; network failures and rate limits are not persisted. Retain the cache directory in CI to reuse mappings between builds. Cache files store usernames and expiry times, with hashed identity keys, and are separated by repository.
-
-Requests run serially within each reader, with in-memory deduplication and shared disk caching. Multiple build workers have separate budgets and may make duplicate requests on a cold cache. Authentication errors, rate limits, server errors, and timeouts stop further requests in that reader without delaying the build for a retry window. Existing cached mappings remain usable. Cache failures and lookup failures fall back to local author information, with at most one warning per reader. Omit `github` for entirely offline builds.
-
-## Display
-
-Set `display` in plugin options, or pass these props directly to `GitChangelog`:
+Ordinary emails can be associated with GitHub accounts during compilation:
 
 ```ts
-const display = { defaultExpanded: true, commitsRelativeTime: true };
+{
+  repository: { url: 'https://github.com/owner/repository' },
+  github: { token: process.env.GITHUB_TOKEN },
+}
 ```
 
-| Option                                          | Default                           | Description                                  |
-| ----------------------------------------------- | --------------------------------- | -------------------------------------------- |
-| `defaultExpanded`                               | `false`                           | Expand history on page load.                 |
-| `showContributors`                              | `true`                            | Show contributors above history.             |
-| `hideChangelogHeader`, `hideContributorsHeader` | `false`                           | Hide section headings and their TOC entries. |
-| `hideChangelogNoChangesText`                    | `false`                           | Hide the empty-history message.              |
-| `hideSortBy`                                    | `false`                           | Hide the sort button.                        |
-| `displayAuthorsInsideCommitLine`                | `false`                           | Show avatars beside commits.                 |
-| `commitsRelativeTime`                           | `false`                           | Show relative commit dates.                  |
-| `numCommitHashLetters`                          | `7`                               | Commit hash length.                          |
-| `locale`, `timeZone`                            | `en`, `UTC`                       | Date formatting and contributor-name locale. |
-| `id`, `contributorsId`                          | `git-history`, `git-contributors` | Override section anchors.                    |
-| `className`                                     | —                                 | Wrapper class.                               |
+Only unresolved primary authors are queried. Commits must already exist in that GitHub repository. Co-authors are not assigned the primary author's account. Provide the token to the documentation build step; public repositories need no additional repository permission, and fine-grained tokens for private repositories need **Contents: read**.
 
-Visible headings appear in **On this page**. Automatic anchors avoid existing headings. For multiple manually rendered instances, set distinct IDs; a custom `id` also gives contributors the default anchor `<id>-contributors`.
+| Setting       | Default                                     | Meaning                                                           |
+| ------------- | ------------------------------------------- | ----------------------------------------------------------------- |
+| `token`       | None                                        | Missing tokens skip lookup with one warning.                      |
+| `cacheDir`    | `node_modules/.cache/fumadocs-page-history` | Git-root-relative cache directory; `false` disables disk caching. |
+| `maxRequests` | `100`                                       | Budget per reader/compiler worker.                                |
+| `timeoutMs`   | `5000`                                      | Timeout per request.                                              |
 
-Relative dates start as absolute dates in server HTML. Expand/collapse requires JavaScript; `defaultExpanded: true` includes history rows in the initial HTML.
+Successful mappings are cached for seven days; unavailable or unassociated commits for five minutes. Network failures and rate limits are not persisted. Cache keys hash identity emails and are separated by repository. Tokens and emails are never included in pages or cached records.
 
-The entire history header toggles the timeline; sorting is a separate button. Screens up to 640px hide commit hashes and their separators to leave more space for messages.
-
-## Translations
-
-Extend your existing [Fumadocs translations](https://www.fumadocs.dev/docs/ui/translations) and pass them to `RootProvider`:
-
-```ts
-import { gitChangelogTranslations, zhCN } from 'fumadocs-page-history/i18n';
-
-const translations = i18n
-  .translations()
-  .extend(uiTranslations())
-  .extend(gitChangelogTranslations())
-  .preset('zh', zhCN());
-```
-
-This uses your existing `i18n` and `uiTranslations` setup. Labels default to English. `display.locale` controls dates and contributor names separately, e.g. `zh-CN`.
+Requests are serialized within each reader, with deduplication and shared disk caching. Workers have separate budgets and may duplicate cold-cache requests. Authentication failures, rate limits, server errors, and timeouts stop further requests in that reader; cached mappings remain available. Lookup or cache failures fall back to local author information, with at most one warning per reader. Omit `github` for offline builds.

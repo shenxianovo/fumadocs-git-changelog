@@ -31,11 +31,11 @@ const missingTTL = 5 * 60_000;
 
 /** One resolver per reader: bounded serial requests, shared by all its pages. */
 export function createGitHubResolver(
-  repoURL: string,
+  repositoryUrl: string,
   options: GitHubOptions,
   getRoot: () => Promise<string>,
 ): (sha: string, email: string) => Promise<string | undefined> {
-  const url = new URL(repoURL);
+  const url = new URL(repositoryUrl);
   const repository = url.pathname.replace(/^\/+|\/+$/g, '').replace(/\.git$/, '');
   const supported = url.origin === 'https://github.com' && /^[\w.-]+\/[\w.-]+$/.test(repository);
   const token = options.token?.trim();

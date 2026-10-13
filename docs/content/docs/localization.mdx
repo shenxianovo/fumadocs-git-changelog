@@ -1,0 +1,84 @@
+---
+title: Chinese setup
+description: Configure Chinese labels and date formatting together.
+---
+
+A Chinese page needs two settings: the site provides translated labels, and `display.locale` selects Chinese date formatting and contributor names. The examples below include both.
+
+## Single-language site
+
+Keep the minimal plugin setup and add `display.locale`:
+
+```ts title="source.config.ts"
+import { defineConfig } from 'fumadocs-mdx/config';
+import { remarkGitChangelog } from 'fumadocs-page-history/remark';
+
+export default defineConfig({
+  mdxOptions: {
+    remarkPlugins: [
+      [
+        remarkGitChangelog,
+        {
+          repository: { url: 'https://github.com/owner/repository' },
+          display: { locale: 'zh-CN' },
+        },
+      ],
+    ],
+  },
+});
+```
+
+Register both the Fumadocs and Page History translation keys. Alias the package preset when your site uses presets from other packages:
+
+```ts title="lib/translations.ts"
+import { defineTranslations } from 'fumadocs-core/i18n';
+import { uiTranslations } from 'fumadocs-ui/i18n';
+import { gitChangelogTranslations, zhCN as historyZhCN } from 'fumadocs-page-history/i18n';
+
+export const translations = defineTranslations()
+  .extend(uiTranslations())
+  .extend(gitChangelogTranslations())
+  .preset(historyZhCN());
+```
+
+Keep your existing Fumadocs label translations and other package presets in this chain. Page History's preset supplies its own labels only.
+
+Pass the translations to your existing root provider:
+
+```tsx title="app/layout.tsx"
+import { RootProvider } from 'fumadocs-ui/provider/next';
+import { i18nProvider } from 'fumadocs-ui/i18n';
+import { translations } from '@/lib/translations';
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="zh-CN" suppressHydrationWarning>
+      <body>
+        <RootProvider i18n={i18nProvider(translations)}>{children}</RootProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+Keep your existing CSS imports and theme configuration. The stylesheet still needs the import from [Setup](/docs#import-the-styles).
+
+## Multi-language site
+
+Add the keys and preset to your existing Fumadocs i18n configuration:
+
+```ts
+const translations = i18n
+  .translations()
+  .extend(uiTranslations())
+  .extend(gitChangelogTranslations())
+  .preset('zh', historyZhCN());
+```
+
+Here `zh` is the route-language key in your site's `i18n` configuration. Pass the active route language when constructing its provider. Register the compiler plugin in each localized collection with its corresponding `display.locale`, such as `en` or `zh-CN`.
+
+For a manually rendered `GitChangelog`, pass `locale` for the current page. The [interactive demo](/docs/demo) shows English and Chinese labels and dates.
+
+## Time zones
+
+The reader's browser time zone is detected automatically. Server HTML uses UTC until hydration; dates near midnight can change when the browser zone is applied. This happens independently of the page language, with no time-zone configuration.

@@ -1,26 +1,22 @@
 import { x } from 'tinyexec';
 import path from 'node:path';
+import { normalizeRepositoryPath } from '../paths';
 import { createGitHubResolver, type GitHubOptions } from './github';
-import type { HistoryAuthor, HistoryCommit } from '../index';
+import type { HistoryAuthor, HistoryCommit, Repository } from '../index';
 
 export type { GitHubOptions } from './github';
 
-export interface MappedAuthor {
-  name: string;
-  username?: string;
+export type AuthorMapping = {
+  githubUsername: string;
+  displayName?: string;
   avatar?: string;
   url?: string;
   i18n?: Record<string, string>;
-  mapByNameAliases?: readonly string[];
-  mapByEmailAliases?: readonly string[];
-}
+} & ({ gitName: string; gitEmail?: string } | { gitName?: string; gitEmail: string });
 
 export interface HistoryOptions {
-  /** A directory inside the checkout. Paths are always relative to its Git root. */
-  cwd?: string;
-  /** GitHub-compatible web URL; never inferred from private remote credentials. */
-  repoURL: string;
-  registry?: readonly MappedAuthor[];
+  repository: Repository;
+  authorMappings?: readonly AuthorMapping[];
   /** Optional build-time GitHub account lookup. Disabled unless configured. */
   github?: GitHubOptions;
   /** Exclude bot identities from attribution, while keeping their commits. Default: true. */
@@ -33,34 +29,38 @@ export interface HistoryOptions {
 
 const normalize = (value: string) => value.trim().toLocaleLowerCase('en-US');
 
-function findMappedAuthor(name: string, email: string, registry: readonly MappedAuthor[]) {
+function findMappedAuthor(name: string, email: string, mappings: readonly AuthorMapping[]) {
+  for (const mapping of mappings) {
+    if (!mapping.githubUsername?.trim() || (!mapping.gitName?.trim() && !mapping.gitEmail?.trim()))
+      throw new Error(
+        'Each author mapping needs githubUsername and at least one of gitName or gitEmail.',
+      );
+  }
+  const matches = (mapping: AuthorMapping) =>
+    (mapping.gitName === undefined || normalize(mapping.gitName) === normalize(name)) &&
+    (mapping.gitEmail === undefined || normalize(mapping.gitEmail) === normalize(email));
+  // Email-qualified mappings take precedence over name-only mappings.
   return (
-    registry.find((entry) =>
-      entry.mapByEmailAliases?.some((alias) => normalize(alias) === normalize(email)),
-    ) ??
-    registry.find((entry) =>
-      [entry.name, entry.username, ...(entry.mapByNameAliases ?? [])].some(
-        (alias) => alias && normalize(alias) === normalize(name),
-      ),
-    )
+    mappings.find((mapping) => mapping.gitEmail !== undefined && matches(mapping)) ??
+    mappings.find(matches)
   );
 }
 
 export function mapAuthor(
   name: string,
   email: string,
-  registry: readonly MappedAuthor[] = [],
+  authorMappings: readonly AuthorMapping[] = [],
 ): HistoryAuthor {
-  const author = findMappedAuthor(name, email, registry);
-  // Once mapped, all aliases use the registry's public identity.
+  const author = findMappedAuthor(name, email, authorMappings);
+  // Once mapped, matched Git identities use the account's public identity.
   const username = author
-    ? author.username
+    ? author.githubUsername
     : email.match(/^(?:\d+\+)?([a-z\d](?:[a-z\d-]*[a-z\d])?)@users\.noreply\.github\.com$/i)?.[1];
   const profile = username ? `https://github.com/${encodeURIComponent(username)}` : undefined;
   const avatarUrl = author?.avatar ?? (profile ? `${profile}.png` : undefined);
   const url = author?.url ?? profile;
   return {
-    name: author?.name ?? name,
+    name: author?.displayName ?? author?.githubUsername ?? name,
     ...(avatarUrl ? { avatarUrl } : {}),
     ...(url ? { url } : {}),
     ...(author?.i18n ? { i18n: author.i18n } : {}),
@@ -77,7 +77,7 @@ function repositoryURL(value: string): string {
     url.hash
   ) {
     throw new Error(
-      'repoURL must be an HTTP(S) repository URL without credentials, query, or fragment.',
+      'repository.url must be an HTTP(S) repository URL without credentials, query, or fragment.',
     );
   }
   return url.href.replace(/\/$/, '');
@@ -86,7 +86,7 @@ function repositoryURL(value: string): string {
 /** Parse the six NUL-delimited fields emitted by readPageHistory. */
 export function parseGitLog(
   output: string,
-  options: Pick<HistoryOptions, 'repoURL' | 'registry' | 'excludeBots' | 'getCommitURL'>,
+  options: Pick<HistoryOptions, 'repository' | 'authorMappings' | 'excludeBots' | 'getCommitURL'>,
 ): HistoryCommit[] {
   return parseGitLogWithAuthors(output, options).commits;
 }
@@ -94,7 +94,7 @@ export function parseGitLog(
 function parseGitLogWithAuthors(output: string, options: Parameters<typeof parseGitLog>[1]) {
   const unresolved = new Map<HistoryAuthor, { sha: string; email: string }>();
   const commits: HistoryCommit[] = [];
-  const repoURL = repositoryURL(options.repoURL);
+  const repositoryUrl = repositoryURL(options.repository.url);
   if (!output.trim()) return { commits, unresolved };
   const fields = output.split('\0');
   const trailing = fields.pop();
@@ -120,11 +120,11 @@ function parseGitLogWithAuthors(output: string, options: Parameters<typeof parse
     for (const identity of identities) {
       if (options.excludeBots !== false && /\[bot\]/i.test(identity.name + identity.email))
         continue;
-      const author = mapAuthor(identity.name, identity.email, options.registry);
+      const author = mapAuthor(identity.name, identity.email, options.authorMappings);
       if (
         identity === identities[0] &&
         !author.url &&
-        !findMappedAuthor(name, email, options.registry ?? [])
+        !findMappedAuthor(name, email, options.authorMappings ?? [])
       )
         unresolved.set(author, { sha, email });
       if (!authors.some((entry) => entry.name === author.name && entry.url === author.url))
@@ -142,8 +142,8 @@ function parseGitLogWithAuthors(output: string, options: Parameters<typeof parse
       message,
       description: description.join('\n').trim(),
       authors,
-      url: `${repoURL}/commit/${sha}`,
-      repoURL,
+      url: `${repositoryUrl}/commit/${sha}`,
+      repositoryUrl,
     };
     if (options.getCommitURL) commit.url = options.getCommitURL(commit);
     commits.push(commit);
@@ -165,12 +165,13 @@ export function createHistoryReader(options: HistoryOptions) {
     (await x('git', args, { throwOnError: true, nodeOptions: { cwd } })).stdout;
   let root: Promise<string> | undefined;
   const getRoot = () =>
-    (root ??= run(['rev-parse', '--show-toplevel'], options.cwd ?? process.cwd()).then((v) =>
-      v.trim(),
-    ));
+    (root ??= run(
+      ['rev-parse', '--show-toplevel'],
+      options.repository.directory ?? process.cwd(),
+    ).then((v) => v.trim()));
   const git = async (args: string[]) => run(['--literal-pathspecs', ...args], await getRoot());
   const resolveGitHub = options.github
-    ? createGitHubResolver(repositoryURL(options.repoURL), options.github, getRoot)
+    ? createGitHubResolver(repositoryURL(options.repository.url), options.github, getRoot)
     : undefined;
   let metadata: Promise<string> | undefined;
   const getTags = () =>
@@ -194,13 +195,8 @@ export function createHistoryReader(options: HistoryOptions) {
     ) {
       throw new Error('maxGitLogCount must be a positive safe integer.');
     }
-    const source = path.normalize(sourcePath).split(path.sep).join('/');
-    if (source === '.' || path.isAbsolute(source) || source === '..' || source.startsWith('../')) {
-      throw new Error(
-        'History requires a non-empty repository-relative file path inside the checkout.',
-      );
-    }
-    const repoURL = repositoryURL(options.repoURL);
+    const source = normalizeRepositoryPath(path.normalize(sourcePath).split(path.sep).join('/'));
+    const repositoryUrl = repositoryURL(options.repository.url);
     const tags = await getTags();
     const output = await git([
       'log',
@@ -222,7 +218,7 @@ export function createHistoryReader(options: HistoryOptions) {
           name,
           url:
             options.getReleaseTagURL?.(name, commit) ??
-            `${repoURL}/releases/tag/${encodeURIComponent(name)}`,
+            `${repositoryUrl}/releases/tag/${encodeURIComponent(name)}`,
         });
     }
     const ordered = [...commits.values()].sort(
@@ -250,10 +246,19 @@ export function createHistoryReader(options: HistoryOptions) {
   return { getRoot, read };
 }
 
-/** Resolve explicit frontmatter contributors on the server with the same author registry. */
+/** Resolve explicit frontmatter contributors through the same public account mappings. */
 export function resolveAuthors(
   names: readonly string[],
-  registry: readonly MappedAuthor[] = [],
+  authorMappings: readonly AuthorMapping[] = [],
 ): HistoryAuthor[] {
-  return names.map((name) => mapAuthor(name, '', registry));
+  return names.map((name) => {
+    const mapping = authorMappings.find((entry) =>
+      [entry.githubUsername, entry.displayName, entry.gitName].some(
+        (value) => value !== undefined && normalize(value) === normalize(name),
+      ),
+    );
+    return mapping
+      ? mapAuthor(mapping.gitName ?? name, mapping.gitEmail ?? '', [mapping])
+      : mapAuthor(name, '', authorMappings);
+  });
 }

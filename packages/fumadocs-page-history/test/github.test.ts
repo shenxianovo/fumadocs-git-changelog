@@ -4,7 +4,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { createGitHubResolver } from '../src/git/github';
 
-const repoURL = 'https://github.com/example/docs';
+const repositoryUrl = 'https://github.com/example/docs';
 const sha = 'a'.repeat(40);
 const email = 'private@example.test';
 let directory: string;
@@ -23,7 +23,7 @@ afterEach(async () => {
 });
 function resolver(options = {}) {
   return createGitHubResolver(
-    repoURL,
+    repositoryUrl,
     { token: 'secret-token', cacheDir: directory, ...options },
     async () => directory,
   );

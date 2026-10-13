@@ -1,29 +1,40 @@
 ---
 title: Page History
-description: Add Git history and contributors to your docs.
+description: Add contributors and per-page Git history with one required setting.
 ---
+
+Page History adds contributors and a collapsible commit timeline to your documentation. Try the [interactive demo](/docs/demo).
 
 ## Setup
 
-This is a community-maintained integration. Requires Node.js 24.14 or later and Fumadocs 16.17 or later. Try the [interactive demo](/docs/demo).
+Use Node.js 24.14 or later, Fumadocs 16.17 or later, and Git with a complete checkout. Your document files normally stay inside that checkout; the plugin discovers the repository and file paths automatically.
 
-Install the package:
+<Steps>
+<Step>
+
+### Install the package
 
 ```npm
 npm i fumadocs-page-history
 ```
 
-### Add Styles
+</Step>
+<Step>
 
-Add after your Fumadocs styles:
+### Import the styles
 
-```css title="global.css"
+Import after your Fumadocs styles:
+
+```css title="app/global.css"
 @import 'fumadocs-page-history/css/preset.css';
 ```
 
-### Configure Plugin
+</Step>
+<Step>
 
-Add the plugin to your existing Fumadocs MDX configuration:
+### Register the plugin
+
+Only `repository.url` is required:
 
 <Tabs items={["MDX", "Sätteri"]}>
 <Tab>
@@ -34,7 +45,14 @@ import { remarkGitChangelog } from 'fumadocs-page-history/remark';
 
 export default defineConfig({
   mdxOptions: {
-    remarkPlugins: [[remarkGitChangelog, { repoURL: 'https://github.com/owner/repository' }]],
+    remarkPlugins: [
+      [
+        remarkGitChangelog,
+        {
+          repository: { url: 'https://github.com/owner/repository' },
+        },
+      ],
+    ],
   },
 });
 ```
@@ -49,7 +67,11 @@ import { gitChangelog } from 'fumadocs-page-history/satteri';
 export default defineConfig({
   compiler: 'satteri',
   satteriOptions: {
-    mdastPlugins: [gitChangelog({ repoURL: 'https://github.com/owner/repository' })],
+    mdastPlugins: [
+      gitChangelog({
+        repository: { url: 'https://github.com/owner/repository' },
+      }),
+    ],
   },
 });
 ```
@@ -57,14 +79,38 @@ export default defineConfig({
 </Tab>
 </Tabs>
 
-Contributors and page history appear after each document. No page-template changes are needed.
-If a collection defines its own compiler options, register the plugin there instead. See [Configuration](/docs/configuration).
+Contributors and history appear after each committed document. No page-template changes are needed.
 
-For sites with multiple collections, register the plugin only in the docs collection. This keeps blog posts and other MDX content separate. React homepages do not run the MDX plugin.
+</Step>
+</Steps>
 
-### Build
+Keep your existing plugins. If a collection has its own compiler options, register Page History there using the [collection configuration](/docs/configuration#collection-options). Sites with blog posts or other MDX collections should register it only for the intended collection.
 
-Git must be available with a full checkout. On GitHub Actions:
+## Optional: associate GitHub accounts
+
+Add `authorMappings` to the same plugin settings:
+
+```ts
+{
+  repository: { url: 'https://github.com/owner/repository' },
+  authorMappings: [
+    { gitName: 'Alex', githubUsername: 'alex' },
+  ],
+}
+```
+
+This associates commits by Alex with the GitHub account `alex`, supplying a profile link and avatar. It makes no GitHub API requests. Actual contributors still come from the page's commits. See [matching rules](/docs/configuration#author-mappings) for email selectors and additional contributors.
+
+## What happens automatically
+
+- History is read during compilation; Git is not needed in the deployed site.
+- File renames, co-authors, and release tags are included.
+- Both sections are enabled; the history timeline starts collapsed.
+- Dates switch from UTC server HTML to the reader's browser time zone after hydration.
+- New pages without commits or explicit contributors have no footer. Development logs explain why.
+- Git-only changes require a development-server restart or a fresh production build.
+
+GitHub Actions needs a full checkout:
 
 ```yaml
 - uses: actions/checkout@v6
@@ -73,6 +119,5 @@ Git must be available with a full checkout. On GitHub Actions:
 ```
 
 For an existing shallow clone, run `git fetch --unshallow`.
-History is included at build time; your deployed site does not need Git. Rebuild after commits, or restart the development server for Git-only changes. New files show history after their first commit.
 
-Inspired by [Nolebase Page History](https://nolebase-integrations.ayaka.io/pages/en/integrations/git-changelog/).
+Continue with [Chinese setup](/docs/localization), [Configuration](/docs/configuration), or [Troubleshooting](/docs/troubleshooting).

@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { TranslationProvider } from '@fuma-translate/react';
 import { FrameworkProvider } from 'fumadocs-core/framework';
 import { gitChangelogTranslations, zhCN } from '../src/i18n';
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import { getContributors, shouldShowContributors, type HistoryCommit } from '../src';
 import { GitChangelog, GitContributors } from '../src/ui';
 import { CommitMessage } from '../src/ui/message';
@@ -38,6 +38,18 @@ it('uses native collapsed rendering while retaining contributors and the latest 
   expect(html).toContain('aria-expanded="false"');
   expect(html).not.toContain('Initial commit');
   expect(html).not.toContain('hidden="until-found"');
+});
+
+it('renders UTC before hydration even when the server uses another time zone', () => {
+  vi.stubEnv('TZ', 'America/Los_Angeles');
+  try {
+    const html = renderToStaticMarkup(<GitChangelog commits={[commit]} defaultExpanded />);
+    expect(html).toContain('Jan 1, 2026');
+    expect(html).not.toContain('Dec 31, 2025');
+    expect(html).toMatch(/<time[^>]+title="[^"]+ UTC"/);
+  } finally {
+    vi.unstubAllEnvs();
+  }
 });
 
 it('uses one native toggle for the whole header, with sorting outside the toggle', () => {
@@ -99,7 +111,7 @@ it('sorts input without mutating it and distinguishes empty history', () => {
 it('renders Markdown and issue references without interpreting code or existing links', () => {
   const html = renderToStaticMarkup(
     <CommitMessage
-      repoURL="https://example.com/repo"
+      repositoryUrl="https://example.com/repo"
       message={'fix **#12** with `#34` and [*#56*](https://example.com/other)'}
     />,
   );
@@ -245,7 +257,7 @@ it('renders inline commit Markdown without block elements inside a timeline row'
   const html = renderToStaticMarkup(
     <CommitMessage
       message={'**Subject** with `code` and #12'}
-      repoURL="https://example.com/repo"
+      repositoryUrl="https://example.com/repo"
       inline
     />,
   );

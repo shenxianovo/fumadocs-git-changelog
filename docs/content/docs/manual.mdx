@@ -16,14 +16,14 @@ import { GitChangelog } from 'fumadocs-page-history/ui';
 
 export async function PageHistory({ path }: { path: string }) {
   const commits = await readPageHistory(path, {
-    repoURL: 'https://github.com/owner/repository',
+    repository: { url: 'https://github.com/owner/repository' },
   });
 
   return <GitChangelog commits={commits} />;
 }
 ```
 
-Place it where history should appear. `path` is relative to the Git root, e.g. `content/docs/guide.mdx`, not a URL or slug. Reader options are listed in [Configuration](/docs/configuration#git-options); standalone readers default `cwd` to the current working directory.
+Place it where history should appear. `path` is relative to the Git root, e.g. `content/docs/guide.mdx`, not a URL or slug. Reader options are listed in [Configuration](/docs/configuration#advanced-git-controls); standalone readers use the current working directory to discover Git when `repository.directory` is omitted.
 
 Without Git at runtime, save the records as JSON during your build and import that snapshot. Git requires a complete checkout; failed commands and shallow checkouts report errors.
 
@@ -34,7 +34,7 @@ Each `readPageHistory()` call reads fresh repository metadata. A build processin
 ```ts
 import { createHistoryReader } from 'fumadocs-page-history/git';
 
-const history = createHistoryReader({ repoURL: 'https://github.com/owner/repository' });
+const history = createHistoryReader({ repository: { url: 'https://github.com/owner/repository' } });
 const commits = await history.read('content/docs/guide.mdx');
 ```
 
@@ -42,7 +42,7 @@ Create a new reader for each build. The compiler plugins manage this themselves.
 
 ## Components
 
-`GitChangelog` accepts `commits`, optional additional `authors`, and the [display props](/docs/configuration#display). Pass `repoURL` when manually supplied records lack it.
+`GitChangelog` accepts `commits`, optional additional `authors`, and the [display props](/docs/configuration#display). Pass `repository: { url }` when manually supplied records lack `repositoryUrl`.
 
 For contributors only:
 
@@ -52,4 +52,4 @@ import { GitContributors } from 'fumadocs-page-history/ui';
 <GitContributors commits={commits} authors={authors} />;
 ```
 
-`resolveAuthors(names, registry)` from the Git entry point resolves additional authors. `shouldShowChangelog(frontmatter)` and `shouldShowContributors(frontmatter)` from `fumadocs-page-history` apply the same per-page controls as the plugins.
+`resolveAuthors(names, authorMappings)` from the Git entry point resolves additional authors. `shouldShowChangelog(frontmatter)` and `shouldShowContributors(frontmatter)` from `fumadocs-page-history` apply the same per-page controls as the plugins.
