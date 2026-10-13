@@ -103,6 +103,8 @@ After validation passes, pushes to `main` deploy the docs and demo to Vercel. Pu
 
 The Vercel project uses the `docs` root directory with files outside the root directory included, the Next.js preset, and Node.js 24. Build settings are in `docs/vercel.json`.
 
+During the upstream guide migration, [the legacy documentation site](https://fumadocs-git-changelog.vercel.app) serves the fixed `v0.1.1` snapshot from a separate Vercel project. CI updates the new Page History site. Keep the legacy deployment available until the upstream documentation update has been submitted.
+
 GitHub Actions requires the repository variables `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID`, and the repository secret `VERCEL_TOKEN`. The docs build uses the workflow's read-only `GITHUB_TOKEN` for optional author lookup.
 
 ## License and credits
