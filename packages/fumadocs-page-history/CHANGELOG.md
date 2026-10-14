@@ -1,5 +1,11 @@
 # fumadocs-page-history
 
+## 0.3.1
+
+### Patch Changes
+
+- Show author names beside inline avatars and keep date separators with their dates when long commit messages wrap. Allow multiple inline authors to wrap without overflowing the history panel.
+
 ## 0.3.0
 
 ### Minor Changes

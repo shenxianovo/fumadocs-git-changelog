@@ -1,11 +1,11 @@
 [
   {
-    "sha": "63a1a922fc7c974211533ed1248d4c615c33bc06",
-    "shortSha": "63a1a92",
-    "date": "2026-10-12T14:26:50+08:00",
-    "authoredAt": "2026-10-12T14:26:50+08:00",
-    "committedAt": "2026-10-12T14:33:43+08:00",
-    "message": "feat: extract Git Changelog as a community package",
+    "sha": "ae7da873e0ca5ad6b4f11b2aa549c09ad2762158",
+    "shortSha": "ae7da87",
+    "date": "2026-10-13T14:28:12+08:00",
+    "authoredAt": "2026-10-13T14:28:12+08:00",
+    "committedAt": "2026-10-13T14:28:12+08:00",
+    "message": "feat: simplify page history setup for 0.3.0",
     "description": "",
     "authors": [
       {
@@ -14,13 +14,55 @@
         "url": "https://github.com/shenxianovo"
       }
     ],
-    "url": "https://github.com/shenxianovo/fumadocs-page-history/commit/63a1a922fc7c974211533ed1248d4c615c33bc06",
+    "url": "https://github.com/shenxianovo/fumadocs-page-history/commit/ae7da873e0ca5ad6b4f11b2aa549c09ad2762158",
     "repositoryUrl": "https://github.com/shenxianovo/fumadocs-page-history",
     "tags": [
       {
-        "name": "v0.1.0",
-        "url": "https://github.com/shenxianovo/fumadocs-page-history/releases/tag/v0.1.0"
+        "name": "v0.3.0",
+        "url": "https://github.com/shenxianovo/fumadocs-page-history/releases/tag/v0.3.0"
       }
     ]
+  },
+  {
+    "sha": "9a4f0f337bcce35ce640488fb8bcec04965f0fdf",
+    "shortSha": "9a4f0f3",
+    "date": "2026-10-13T11:05:00+08:00",
+    "authoredAt": "2026-10-13T11:05:00+08:00",
+    "committedAt": "2026-10-13T11:05:00+08:00",
+    "message": "refactor: rename package and repository to fumadocs-page-history",
+    "description": "",
+    "authors": [
+      {
+        "name": "shenxianovo",
+        "avatarUrl": "https://github.com/shenxianovo.png",
+        "url": "https://github.com/shenxianovo"
+      }
+    ],
+    "url": "https://github.com/shenxianovo/fumadocs-page-history/commit/9a4f0f337bcce35ce640488fb8bcec04965f0fdf",
+    "repositoryUrl": "https://github.com/shenxianovo/fumadocs-page-history",
+    "tags": [
+      {
+        "name": "v0.2.0",
+        "url": "https://github.com/shenxianovo/fumadocs-page-history/releases/tag/v0.2.0"
+      }
+    ]
+  },
+  {
+    "sha": "b6e4eaa392fa0f787371243ca540be8d2a05583e",
+    "shortSha": "b6e4eaa",
+    "date": "2026-10-12T15:01:44+08:00",
+    "authoredAt": "2026-10-12T15:01:44+08:00",
+    "committedAt": "2026-10-12T15:01:44+08:00",
+    "message": "docs: add guides and interactive demo",
+    "description": "",
+    "authors": [
+      {
+        "name": "shenxianovo",
+        "avatarUrl": "https://github.com/shenxianovo.png",
+        "url": "https://github.com/shenxianovo"
+      }
+    ],
+    "url": "https://github.com/shenxianovo/fumadocs-page-history/commit/b6e4eaa392fa0f787371243ca540be8d2a05583e",
+    "repositoryUrl": "https://github.com/shenxianovo/fumadocs-page-history"
   }
 ]

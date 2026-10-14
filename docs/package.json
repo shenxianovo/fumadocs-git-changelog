@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@fuma-translate/react": "^1.0.2",
+    "@fumadocs/story": "^1.5.0",
+    "@fumari/stf": "^1.1.1",
     "cn": "^0.4.0",
     "fumadocs-core": "^16.17.1",
     "fumadocs-mdx": "^15.4.7",

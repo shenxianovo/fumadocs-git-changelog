@@ -54,7 +54,7 @@ export function Author({
       {avatar ? (
         <img
           src={avatar}
-          alt={compact ? name : ''}
+          alt=""
           width={compact ? 22 : 36}
           height={compact ? 22 : 36}
           loading="lazy"
@@ -65,7 +65,7 @@ export function Author({
           {Array.from(name)[0] ?? '?'}
         </span>
       )}
-      <span className={compact ? 'sr-only' : 'fgc-author-name'}>{name}</span>
+      <span className="fgc-author-name">{name}</span>
     </HistoryLink>
   );
 }

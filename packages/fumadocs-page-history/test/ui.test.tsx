@@ -206,6 +206,28 @@ it('honors display options without hiding tagged commits', () => {
   expect(empty).not.toContain('aria-expanded');
 });
 
+it('shows readable author names beside inline avatars', () => {
+  const html = renderToStaticMarkup(
+    <GitChangelog
+      commits={[
+        {
+          ...commit,
+          authors: [
+            { name: 'Example', avatarUrl: 'https://example.com/avatar.png' },
+            { name: 'Partner' },
+          ],
+        },
+      ]}
+      defaultExpanded
+      showContributors={false}
+      displayAuthorsInsideCommitLine
+    />,
+  );
+  expect(html).toContain('Example');
+  expect(html).toContain('Partner');
+  expect(html).not.toMatch(/class="sr-only">(?:Example|Partner)</);
+});
+
 it('counts each contributor once per commit, adds explicit authors, and sorts by count', () => {
   const author = { name: 'Author' };
   const partner = { name: 'Partner' };

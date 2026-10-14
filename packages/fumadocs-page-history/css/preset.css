@@ -46,6 +46,7 @@
   color: var(--fgc-link);
 }
 .fgc-author-name {
+  min-width: 0;
   overflow-wrap: anywhere;
 }
 .fgc-avatar {
@@ -68,6 +69,11 @@
 .fgc-author-compact .fgc-avatar {
   width: 22px;
   height: 22px;
+}
+.fgc-author-compact {
+  gap: 0.375rem;
+  font-size: inherit;
+  line-height: inherit;
 }
 .fgc-panel {
   border-radius: 0.75rem;
@@ -218,6 +224,7 @@
 .fgc-date {
   color: var(--color-fd-muted-foreground);
   font-size: 0.8125rem;
+  white-space: nowrap;
 }
 .fgc .fgc-tag {
   display: inline;
@@ -237,8 +244,10 @@
 }
 .fgc-inline-authors {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.25rem;
+  max-width: 100%;
+  gap: 0.5rem;
   margin-inline: 0.5rem 0.25rem;
   vertical-align: middle;
 }
