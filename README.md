@@ -63,6 +63,17 @@ Dates use the reader's browser time zone. Server HTML starts in UTC and switches
 
 History is collected at compilation time. New files need a first commit; restart the development server after Git-only changes. Use a complete checkout (`fetch-depth: 0` in GitHub Actions). The deployed site does not need Git.
 
+For a migration that rewrites a page too heavily for Git to detect a rename, use the build-time `getHistoryPaths` option to return additional paths relative to the Git root:
+
+```ts
+getHistoryPaths: (sourcePath) =>
+  sourcePath === 'docs/about/introduction.mdx'
+    ? ['docs/about/introduction.md']
+    : [],
+```
+
+The current path is always included. Histories follow actual renames, preserve page creation and relevant merges, and do not follow template copies. Results are deduplicated by SHA and sorted by author date before limiting. The same option is available to both compiler plugins, `createHistoryReader`, and `readPageHistory`; no migration paths are guessed.
+
 See [Setup](https://fumadocs-page-history.vercel.app/docs), [Configuration](https://fumadocs-page-history.vercel.app/docs/configuration), and [Troubleshooting](https://fumadocs-page-history.vercel.app/docs/troubleshooting). Both Radix UI and Base UI are supported. Sätteri uses `gitChangelog` from `fumadocs-page-history/satteri` with the same settings.
 
 ## Workspace

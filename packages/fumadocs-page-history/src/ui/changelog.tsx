@@ -123,7 +123,7 @@ export function GitChangelog({
             <div className="fgc-header">
               <CollapsibleTrigger
                 aria-label={expanded ? t('Collapse history') : t('View full history')}
-                className={`${buttonVariants({ variant: 'ghost' })} fgc-toggle`}
+                className="fgc-toggle"
               >
                 <span className="fgc-summary">
                   <History className="fgc-history-icon" aria-hidden="true" />

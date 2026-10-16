@@ -15,6 +15,7 @@ Both compiler plugins accept the same settings. Start with the [minimal setup](/
 | `github`               | No       | Disabled                        | Optional build-time GitHub account lookup.                       |
 | `repository.directory` | No       | Auto-discovered                 | A directory inside the local checkout, used to locate Git.       |
 | `content`              | No       | Files keep their checkout paths | Location mapping for documents copied to another directory.      |
+| `getHistoryPaths`      | No       | No extra paths                  | Additional historical paths for explicitly mapped migrations.    |
 
 `repository.url` must have no credentials, query, or fragment. It is provided explicitly and is never inferred from remote credentials. Local paths and account-matching selectors stay in the build process.
 
@@ -133,7 +134,35 @@ Sätteri collections register `gitChangelog(options)` in `docs.satteriOptions.md
 | `getCommitURL`     | Repository commit URL  | Customize commit links for another Git host.                 |
 | `getReleaseTagURL` | Repository release URL | Customize release tag links.                                 |
 
-History follows Git-detected renames, includes merge changes relative to the first parent, and sorts by author date. Lightweight and annotated tags are supported. Commit Markdown links `#123` to `/issues/123`; raw HTML is disabled.
+History follows Git-detected renames, preserves creation commits on merged branches, includes merge changes relative to the first parent, and sorts by author date. Copies of another page start their own history. Lightweight and annotated tags are supported. Commit Markdown links `#123` to `/issues/123`; raw HTML is disabled.
+
+### Migration history
+
+Git can miss a rename when a migration changes most of a document, for example when converting Vue Markdown into React MDX. Explicitly list the previous paths instead of lowering rename detection thresholds for every page:
+
+```ts
+const previousPaths: Record<string, readonly string[]> = {
+  'docs/about/introduction.mdx': ['docs/about/introduction.md'],
+};
+
+const options = {
+  repository: { url: 'https://github.com/owner/repository' },
+  getHistoryPaths: (sourcePath: string) => previousPaths[sourcePath] ?? [],
+};
+```
+
+Pass these options to `remarkGitChangelog`, Sätteri's `gitChangelog`, or the Node API:
+
+```ts
+import { createHistoryReader } from 'fumadocs-page-history/git';
+
+const reader = createHistoryReader(options);
+const commits = await reader.read('docs/about/introduction.mdx');
+```
+
+`getHistoryPaths` receives the normalized repository-relative current path, including any `content` location mapping. It returns additional paths relative to the Git root, even when `repository.directory` points at a subdirectory. The current path is always included; return `[]` for pages without a migration. Every path must remain inside the repository. No `.md`/`.mdx` relationship is inferred.
+
+Each path follows actual renames. The combined history is deduplicated by full SHA, sorted by author date (SHA breaks ties), and then limited by `maxGitLogCount`. Author mappings, co-authors, GitHub lookup, release tags, and link callbacks work on the combined result. Like other build settings, this callback and the paths themselves are not serialized into compiled pages.
 
 ### Copied documents
 

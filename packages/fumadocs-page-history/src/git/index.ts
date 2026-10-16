@@ -2,6 +2,7 @@ import { x } from 'tinyexec';
 import path from 'node:path';
 import { normalizeRepositoryPath } from '../paths';
 import { createGitHubResolver, type GitHubOptions } from './github';
+import { createPathHistoryReader } from './history';
 import type { HistoryAuthor, HistoryCommit, Repository } from '../index';
 
 export type { GitHubOptions } from './github';
@@ -23,6 +24,11 @@ export interface HistoryOptions {
   excludeBots?: boolean;
   /** Optional cap on the page history. Defaults to the complete history. */
   maxGitLogCount?: number;
+  /** Additional historical paths, relative to the Git root. Build-time only.
+   * Receives the normalized repository-relative source path; the current path
+   * is always included. No extension or migration paths are guessed.
+   */
+  getHistoryPaths?: (sourcePath: string) => readonly string[];
   getCommitURL?: (commit: HistoryCommit) => string;
   getReleaseTagURL?: (tag: string, commit: HistoryCommit) => string;
 }
@@ -170,6 +176,7 @@ export function createHistoryReader(options: HistoryOptions) {
       options.repository.directory ?? process.cwd(),
     ).then((v) => v.trim()));
   const git = async (args: string[]) => run(['--literal-pathspecs', ...args], await getRoot());
+  const readPathHistory = createPathHistoryReader(git);
   const resolveGitHub = options.github
     ? createGitHubResolver(repositoryURL(options.repository.url), options.github, getRoot)
     : undefined;
@@ -195,19 +202,16 @@ export function createHistoryReader(options: HistoryOptions) {
     ) {
       throw new Error('maxGitLogCount must be a positive safe integer.');
     }
-    const source = normalizeRepositoryPath(path.normalize(sourcePath).split(path.sep).join('/'));
+    const normalizeSource = (source: string) =>
+      normalizeRepositoryPath(path.normalize(source).split(path.sep).join('/'));
+    const source = normalizeSource(sourcePath);
+    const sources = new Set([
+      source,
+      ...(options.getHistoryPaths?.(source) ?? []).map(normalizeSource),
+    ]);
     const repositoryUrl = repositoryURL(options.repository.url);
     const tags = await getTags();
-    const output = await git([
-      'log',
-      '--follow',
-      '--diff-merges=first-parent',
-      '--no-patch',
-      '--no-show-signature',
-      '--format=%H%x00%aI%x00%cI%x00%an%x00%ae%x00%B%x00',
-      '--',
-      source,
-    ]);
+    const output = await readPathHistory([...sources]);
     const parsed = parseGitLogWithAuthors(output, options);
     const commits = new Map(parsed.commits.map((commit) => [commit.sha, commit]));
     for (const line of tags.trim().split('\n').filter(Boolean)) {

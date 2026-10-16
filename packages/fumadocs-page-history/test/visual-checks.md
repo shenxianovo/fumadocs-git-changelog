@@ -28,6 +28,11 @@ to check CSS alignment changes:
 8. After sorting or directly collapsing the history, Reset must restore the
    selected example's initial expansion and newest-first order. All seven examples
    must restore their documented options.
+9. Hover the latest-edit text, the View full history label, and the space between
+   them. One continuous highlight should span the header's content, including the
+   sort icon, while keeping the vertical padding above and below unhighlighted.
+   The whole header still toggles history. Tab focus must outline the same compact
+   strip; the sort button keeps its own focus and click behavior.
 
 Regression: the release label used to sit above the surrounding text because an
 inline flex container with an SVG first child supplied the label's baseline.

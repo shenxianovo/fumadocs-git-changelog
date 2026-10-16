@@ -132,6 +132,169 @@ describe('real Git history', () => {
     expect(history.find((commit) => commit.sha === merge)?.tags?.[0].name).toBe('v2');
   });
 
+  it('keeps the creation and merge of a page introduced on a branch', async () => {
+    const r = repository();
+    // New yearly pages often reuse an existing page as a template. It is a copy,
+    // not a rename: the old page remains an independent document.
+    r.write('other.md');
+    r.commit('Initial repository');
+    r.git('checkout', '-b', 'feature');
+    r.write('guide.md');
+    const first = r.commit('Create page on branch');
+    r.git('checkout', 'main');
+    r.git('-c', 'commit.gpgsign=false', 'merge', '--no-ff', 'feature', '-m', 'Merge page');
+    const merge = r.git('rev-parse', 'HEAD').trim();
+
+    const history = await readPageHistory('guide.md', {
+      repository: { directory: r.cwd, url: repositoryUrl },
+    });
+    expect(new Set(history.map((commit) => commit.sha))).toEqual(new Set([merge, first]));
+  });
+
+  it('follows renames across merges without including later name reuse or unmerged branches', async () => {
+    const r = repository();
+    r.write('old.md', 'Base\n');
+    const first = r.commit('Initial page');
+    r.git('checkout', '-b', 'feature');
+    r.git('mv', 'old.md', 'guide.md');
+    const branchRename = r.commit('Rename on branch');
+    r.git('checkout', 'main');
+    r.write('old.md', 'Changed on main\n');
+    const main = r.commit('Edit before merge');
+    r.git('-c', 'commit.gpgsign=false', 'merge', '--no-ff', 'feature', '-m', 'Merge rename');
+    const merge = r.git('rev-parse', 'HEAD').trim();
+    r.git('mv', 'guide.md', 'guide.mdx');
+    const rename = r.commit('Move merged page to MDX');
+    r.write('old.md', 'An independent page now uses the old name\n');
+    r.commit('Reuse old name');
+    r.git('checkout', '-b', 'unmerged');
+    r.write('guide.mdx', 'Not merged\n');
+    r.commit('Unmerged edit');
+    r.git('checkout', 'main');
+    const history = await readPageHistory('guide.mdx', {
+      repository: { directory: r.cwd, url: repositoryUrl },
+    });
+    expect(new Set(history.map((commit) => commit.sha))).toEqual(
+      new Set([rename, merge, main, branchRename, first]),
+    );
+  });
+
+  it('does not follow a template copy even outside a merge', async () => {
+    const r = repository();
+    r.write('template.md');
+    r.commit('Template history');
+    r.write('guide.md');
+    const first = r.commit('Create independent page from template');
+    expect(
+      (
+        await readPageHistory('guide.md', {
+          repository: { directory: r.cwd, url: repositoryUrl },
+        })
+      ).map((commit) => commit.sha),
+    ).toEqual([first]);
+  });
+
+  it('follows a different historical name on the second parent of a merge', async () => {
+    const r = repository();
+    r.write('old.md');
+    const first = r.commit('Initial page');
+    r.git('checkout', '-b', 'feature');
+    r.write('old.md', 'a\nb\nc\nd\ne\nf\ng\nh\nFeature addition\n');
+    const feature = r.commit('Edit old name on branch');
+    r.git('checkout', 'main');
+    r.git('mv', 'old.md', 'guide.mdx');
+    const rename = r.commit('Rename on main');
+    r.git('-c', 'commit.gpgsign=false', 'merge', '--no-ff', 'feature', '-m', 'Merge page edit');
+    const merge = r.git('rev-parse', 'HEAD').trim();
+    expect(
+      new Set(
+        (
+          await readPageHistory('guide.mdx', {
+            repository: { directory: r.cwd, url: repositoryUrl },
+          })
+        ).map((commit) => commit.sha),
+      ),
+    ).toEqual(new Set([merge, rename, feature, first]));
+  });
+
+  it('does not include an earlier unrelated page that used the rename destination', async () => {
+    const r = repository();
+    r.write('guide.mdx', 'An unrelated retired page\n');
+    r.commit('Retired page');
+    r.git('rm', 'guide.mdx');
+    r.commit('Remove retired page');
+    r.write('old.md');
+    const first = r.commit('Create current page');
+    r.git('mv', 'old.md', 'guide.mdx');
+    const rename = r.commit('Rename current page');
+    expect(
+      (
+        await readPageHistory('guide.mdx', {
+          repository: { directory: r.cwd, url: repositoryUrl },
+        })
+      ).map((commit) => commit.sha),
+    ).toEqual([rename, first]);
+  });
+
+  it('excludes merges that keep the page identical to their first parent', async () => {
+    const r = repository();
+    r.write('guide.md', 'Base\n');
+    const first = r.commit('Initial page');
+    r.git('checkout', '-b', 'feature');
+    r.write('other.md', 'Unrelated feature\n');
+    r.commit('Other page');
+    r.git('checkout', 'main');
+    r.write('guide.md', 'Main edit\n');
+    const edit = r.commit('Edit page on main');
+    r.git('-c', 'commit.gpgsign=false', 'merge', '--no-ff', 'feature', '-m', 'Unrelated merge');
+    expect(
+      (
+        await readPageHistory('guide.md', {
+          repository: { directory: r.cwd, url: repositoryUrl },
+        })
+      ).map((commit) => commit.sha),
+    ).toEqual([edit, first]);
+  });
+
+  it('merges explicitly configured migration paths before deduplication, sorting, and limiting', async () => {
+    const r = repository();
+    r.write('docs/old.md', 'Old Vue content\n');
+    r.commit('Original page');
+    r.git('mv', 'docs/old.md', 'docs/guide.md');
+    const renamed = r.commit('Rename old page\n\nCo-authored-by: Partner <partner@example.test>');
+    r.git('tag', 'v1');
+    r.git('rm', 'docs/guide.md');
+    r.write('docs/guide.mdx', 'Completely rewritten React document\n');
+    const migration = r.commit('Migrate to MDX');
+    r.write('unrelated.md');
+    r.commit('Other page');
+    const getHistoryPaths = vi.fn(() => ['docs/guide.md', './docs/guide.md', 'docs/guide.mdx']);
+    const history = await createHistoryReader({
+      repository: { directory: r.cwd, url: repositoryUrl },
+      getHistoryPaths,
+      maxGitLogCount: 2,
+      authorMappings: [{ gitEmail: 'partner@example.test', githubUsername: 'partner' }],
+    }).read('./docs/guide.mdx');
+
+    expect(getHistoryPaths).toHaveBeenCalledExactlyOnceWith('docs/guide.mdx');
+    expect(history.map((commit) => commit.sha)).toEqual([migration, renamed]);
+    expect(history[1].tags?.[0].name).toBe('v1');
+    expect(history[1].authors[1].url).toBe('https://github.com/partner');
+    expect(JSON.stringify(history)).not.toContain('@example.test');
+  });
+
+  it.each(['../secret', '/absolute.md', '.', ''])(
+    'validates explicit history paths before invoking Git: %s',
+    async (historicalPath) => {
+      await expect(
+        readPageHistory('guide.mdx', {
+          repository: { directory: '/does-not-exist', url: repositoryUrl },
+          getHistoryPaths: () => [historicalPath],
+        }),
+      ).rejects.toThrow('repository-relative');
+    },
+  );
+
   it('reads signed commits regardless of signature display settings', async () => {
     const r = repository();
     const key = path.join(r.cwd, '.git', 'signing-key');
@@ -387,7 +550,8 @@ it('shares repository queries across concurrent pages and refreshes metadata for
   expect(calls.filter((args) => args.includes('--show-toplevel'))).toHaveLength(1);
   expect(calls.filter((args) => args.includes('--is-shallow-repository'))).toHaveLength(1);
   expect(calls.filter((args) => args.includes('for-each-ref'))).toHaveLength(1);
-  expect(calls.filter((args) => args.includes('--follow'))).toHaveLength(2);
+  expect(calls.filter((args) => args.includes('rev-list'))).toHaveLength(1);
+  expect(calls.filter((args) => args.includes('log'))).toHaveLength(2);
 
   r.write('first.md', 'New content');
   const latest = r.commit('Next build');

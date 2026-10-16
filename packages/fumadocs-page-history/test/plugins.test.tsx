@@ -40,6 +40,11 @@ beforeAll(() => {
     });
   git('init');
   mkdirSync(path.join(cwd, 'apps/docs'), { recursive: true });
+  writeFileSync(path.join(cwd, 'apps/docs/legacy-guide.md'), '# Old Vue guide');
+  git('add', '.');
+  git('-c', 'commit.gpgsign=false', 'commit', '-m', 'Legacy page history');
+  git('rm', 'apps/docs/legacy-guide.md');
+  mkdirSync(path.join(cwd, 'apps/docs'), { recursive: true });
   for (const extension of ['md', 'mdx'])
     writeFileSync(path.join(cwd, `apps/docs/page.${extension}`), source);
   git('add', '.');
@@ -152,6 +157,17 @@ describe.each(['remark', 'satteri'] as const)('%s automatic footer', (compiler) 
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  it('merges explicit migration history while keeping the callback and paths in the build', async () => {
+    const getHistoryPaths = vi.fn(() => ['apps/docs/legacy-guide.md']);
+    const { code, html } = await build({ settings: { ...options, getHistoryPaths } });
+    expect(getHistoryPaths).toHaveBeenCalledExactlyOnceWith('apps/docs/page.mdx');
+    expect(html).toContain('Legacy page history');
+    expect(code).not.toContain('getHistoryPaths');
+    expect(code).not.toContain('legacy-guide.md');
+    expect(code).not.toContain(cwd);
+    expect((await build()).html).not.toContain('Legacy page history');
   });
 
   it.each(['md', 'mdx'] as const)(

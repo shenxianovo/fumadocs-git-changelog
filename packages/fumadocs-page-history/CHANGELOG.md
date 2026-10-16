@@ -1,5 +1,13 @@
 # fumadocs-page-history
 
+## 0.3.2
+
+### Patch Changes
+
+- Preserve page creation and relevant merge commits while following renames across branches, without mixing in template copies or unrelated reused paths. Add the build-time `getHistoryPaths` option to combine explicitly mapped migration history in the compiler plugins and standalone reader, with shared SHA deduplication, date ordering, tags, and author resolution.
+
+  Keep the history header's hover and keyboard focus highlight in one compact strip spanning its text and controls, with vertical padding above and below.
+
 ## 0.3.1
 
 ### Patch Changes
