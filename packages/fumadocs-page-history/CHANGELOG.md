@@ -1,5 +1,11 @@
 # fumadocs-page-history
 
+## 0.3.3
+
+### Patch Changes
+
+- Exclude pure PR merges that retain a page unchanged from any parent, preventing duplicate history entries and contributor credit for merging alone. Keep branch creation, renames, and independent merge edits; filter merges before applying history limits. Share Git combined-diff results across pages during each build.
+
 ## 0.3.2
 
 ### Patch Changes

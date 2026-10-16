@@ -72,7 +72,7 @@ getHistoryPaths: (sourcePath) =>
     : [],
 ```
 
-The current path is always included. Histories follow actual renames, preserve page creation and relevant merges, and do not follow template copies. Results are deduplicated by SHA and sorted by author date before limiting. The same option is available to both compiler plugins, `createHistoryReader`, and `readPageHistory`; no migration paths are guessed.
+The current path is always included. Histories follow actual renames, preserve page creation and independent edits made during merges, and do not follow template copies. Pure merges that keep the page identical to any parent are omitted; their branch commits are still followed. Results are deduplicated by SHA and sorted by author date before limiting. The same option is available to both compiler plugins, `createHistoryReader`, and `readPageHistory`; no migration paths are guessed.
 
 See [Setup](https://fumadocs-page-history.vercel.app/docs), [Configuration](https://fumadocs-page-history.vercel.app/docs/configuration), and [Troubleshooting](https://fumadocs-page-history.vercel.app/docs/troubleshooting). Both Radix UI and Base UI are supported. Sätteri uses `gitChangelog` from `fumadocs-page-history/satteri` with the same settings.
 

@@ -132,7 +132,7 @@ describe('real Git history', () => {
     expect(history.find((commit) => commit.sha === merge)?.tags?.[0].name).toBe('v2');
   });
 
-  it('keeps the creation and merge of a page introduced on a branch', async () => {
+  it('keeps branch page creation without duplicating it as a pure merge', async () => {
     const r = repository();
     // New yearly pages often reuse an existing page as a template. It is a copy,
     // not a rename: the old page remains an independent document.
@@ -143,12 +143,53 @@ describe('real Git history', () => {
     const first = r.commit('Create page on branch');
     r.git('checkout', 'main');
     r.git('-c', 'commit.gpgsign=false', 'merge', '--no-ff', 'feature', '-m', 'Merge page');
-    const merge = r.git('rev-parse', 'HEAD').trim();
 
     const history = await readPageHistory('guide.md', {
       repository: { directory: r.cwd, url: repositoryUrl },
     });
-    expect(new Set(history.map((commit) => commit.sha))).toEqual(new Set([merge, first]));
+    expect(history.map((commit) => commit.sha)).toEqual([first]);
+  });
+
+  it('excludes a PR merge that only imports existing branch edits before limiting history', async () => {
+    const r = repository();
+    r.write('guide.md', 'Base\n');
+    const first = r.commit('Initial page');
+    r.git('checkout', '-b', 'feature');
+    r.write('guide.md', 'Feature\n');
+    const feature = r.commit('Edit page on branch');
+    r.git('checkout', 'main');
+    r.write('other.md', 'Unrelated main change\n');
+    r.commit('Edit another page');
+    r.git('-c', 'commit.gpgsign=false', 'merge', '--no-ff', 'feature', '-m', 'Merge pull request');
+    const options = { repository: { directory: r.cwd, url: repositoryUrl } };
+    expect((await readPageHistory('guide.md', options)).map((commit) => commit.sha)).toEqual([
+      feature,
+      first,
+    ]);
+    expect(
+      (await readPageHistory('guide.md', { ...options, maxGitLogCount: 1 })).map(
+        (commit) => commit.sha,
+      ),
+    ).toEqual([feature]);
+  });
+
+  it('excludes conflict resolutions that retain the second parent content unchanged', async () => {
+    const r = repository();
+    r.write('guide.md', 'Base\n');
+    const first = r.commit('Initial page');
+    r.git('checkout', '-b', 'feature');
+    r.write('guide.md', 'Feature\n');
+    const feature = r.commit('Feature edit');
+    r.git('checkout', 'main');
+    r.write('guide.md', 'Main\n');
+    const main = r.commit('Main edit');
+    expect(() => r.git('-c', 'commit.gpgsign=false', 'merge', 'feature')).toThrow();
+    r.write('guide.md', 'Feature\n');
+    r.commit('Choose existing feature content');
+    const history = await readPageHistory('guide.md', {
+      repository: { directory: r.cwd, url: repositoryUrl },
+    });
+    expect(new Set(history.map((commit) => commit.sha))).toEqual(new Set([main, feature, first]));
   });
 
   it('follows renames across merges without including later name reuse or unmerged branches', async () => {

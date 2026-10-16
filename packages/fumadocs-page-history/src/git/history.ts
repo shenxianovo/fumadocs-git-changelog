@@ -48,6 +48,28 @@ export function createPathHistoryReader(git: Git) {
     return result;
   }
 
+  const mergeChanges = new Map<string, Promise<Set<string>>>();
+  function getMergeChanges(sha: string) {
+    let result = mergeChanges.get(sha);
+    if (!result) {
+      // Git's combined diff lists only paths changed relative to every parent.
+      // Share the repository-wide result between all pages in this reader.
+      result = git([
+        'diff-tree',
+        '-r',
+        '-c',
+        '--no-commit-id',
+        '--name-only',
+        '-z',
+        '--no-renames',
+        sha,
+        '--',
+      ]).then((output) => new Set(output.split('\0').filter(Boolean)));
+      mergeChanges.set(sha, result);
+    }
+    return result;
+  }
+
   const histories = new Map<string, Promise<PathHistory>>();
   function getPathHistory(source: string, head: string) {
     let history = histories.get(source);
@@ -130,8 +152,14 @@ export function createPathHistoryReader(git: Git) {
       visited.add(key);
       const history = await getPathHistory(source, head);
       const change = history.changes.get(sha);
-      // Merges with no first-parent change are traversed but not published.
-      if (change) records.set(sha, change.record);
+      // Traverse all parents even when a pure merge adds no independent edit.
+      // Keep first-parent changes for presence/rename traversal, not publishing.
+      if (
+        change &&
+        ((parents.get(sha)?.length ?? 0) < 2 || (await getMergeChanges(sha)).has(source))
+      ) {
+        records.set(sha, change.record);
+      }
       for (const parent of parents.get(sha) ?? []) {
         let previous = source;
         if (exists(sha, history) && !exists(parent, history)) {
