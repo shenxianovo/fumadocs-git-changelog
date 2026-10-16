@@ -1,6 +1,6 @@
 {
   "name": "fumadocs-page-history",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Page Git history integration for Fumadocs",
   "keywords": [
     "changelog",

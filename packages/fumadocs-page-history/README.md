@@ -67,7 +67,7 @@ For migrations that rewrite a page too heavily for Git to detect a rename, expli
 }
 ```
 
-The callback receives a normalized path relative to the Git root and returns additional repository-relative paths. The current path is always included. Histories follow actual renames, keep page creation and relevant merge commits, and do not follow template copies. Results are deduplicated by SHA and sorted by author date before `maxGitLogCount` is applied. The callback and paths stay in the build process. The same option works with `createHistoryReader` and `readPageHistory` from `fumadocs-page-history/git`; no `.md`/`.mdx` relationship is assumed by default.
+The callback receives a normalized path relative to the Git root and returns additional repository-relative paths. The current path is always included. Histories follow actual renames, keep page creation and independent edits made during merges, and do not follow template copies. Pure merges that keep the page identical to any parent are omitted; their branch commits are still followed. Results are deduplicated by SHA and sorted by author date before `maxGitLogCount` is applied. The callback and paths stay in the build process. The same option works with `createHistoryReader` and `readPageHistory` from `fumadocs-page-history/git`; no `.md`/`.mdx` relationship is assumed by default.
 
 See [Setup](https://fumadocs-page-history.vercel.app/docs), [Configuration](https://fumadocs-page-history.vercel.app/docs/configuration), and [Troubleshooting](https://fumadocs-page-history.vercel.app/docs/troubleshooting). Both Radix UI and Base UI are supported. Sätteri uses `gitChangelog` from `fumadocs-page-history/satteri` with the same settings.
 
